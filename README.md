@@ -1,4 +1,4 @@
-# BURGER
+# BURGER 🍔 
 
 **Base Unifiée de Référencement des Grands Equipements RTE**
 
@@ -22,4 +22,4 @@ BURGER est une application Streamlit permettant de rechercher, localiser et affi
    ```
 
 ## Auteur
-DB and APP by Guillaume
+DB and APP by Guillaume 🍔
