@@ -2,7 +2,7 @@
 
 **Base Unifiée de Référencement des Grands Equipements RTE**
 
-BURGER est une application Streamlit permettant de rechercher, localiser et afficher les informations des postes sources HTB appartenant à RTE. Elle est développée par Cap Solar pour faciliter le suivi des installations de fibre et d'équipements dans les postes.
+BURGER est une application Streamlit permettant de rechercher, localiser et afficher les informations des postes sources HTB appartenant à RTE.
 
 ## Fonctionnalités
 - Recherche d'un poste par nom
