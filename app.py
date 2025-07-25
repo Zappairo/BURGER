@@ -35,6 +35,7 @@ if search_nom:
     else:
         st.warning("Aucun poste trouvé avec ce nom.")
 
+# Texte de fin et remerciements
 st.markdown("<hr style='margin-top:40px;margin-bottom:10px;'>", unsafe_allow_html=True)
-st.markdown("<div style='text-align:center; color:gray;'>DB and APP by Guillaume B. 🍔</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align:center; color:gray;'>PROOF OF CONCEPT - DB and APP by Guillaume B. 🍔</div>", unsafe_allow_html=True)
 st.markdown("<div style='text-align:center; color:gray;'>Special thanks to Kévin G. and Hervé G.</div>", unsafe_allow_html=True)
