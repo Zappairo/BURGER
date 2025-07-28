@@ -2,7 +2,7 @@
 
 **Base Unifiée de Référencement des Grands Equipements RTE**
 
-BURGER est une application Streamlit permettant de rechercher, localiser et afficher les informations des postes sources HTB appartenant à RTE.
+BURGER est une application Streamlit permettant de rechercher, localiser et afficher les informations des postes sources HTB appartenant à RTE et les postes HTB/HTA RTE/Enedis.
 
 ## Fonctionnalités
 - Recherche d'un poste par nom
