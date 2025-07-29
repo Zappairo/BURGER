@@ -1,12 +1,8 @@
 # BURGER 🍔 
 
-**Base Unifiée de Référencement des Grands Equipements RTE**
-
-Une application Streamlit sécurisée pour rechercher et localiser les postes électriques HTB de RTE et les postes HTB/HTA RTE/Enedis.
-
 ## ✨ Fonctionnalités
 - 🔐 Authentification sécurisée via MongoDB
-- 🔍 Recherche rapide par nom de poste
+- 🔍 Recherche rapide par nom
 - 📊 Affichage des informations détaillées
 - 📍 Géolocalisation avec lien Google Maps
 - 🎯 Interface simple et intuitive
