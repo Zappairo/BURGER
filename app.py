@@ -1,21 +1,117 @@
 import streamlit as st
 import pandas as pd
+import pymongo
+import bcrypt
+import os
+
+# Configuration MongoDB
+def get_mongodb_url():
+    """Récupère l'URL MongoDB depuis différentes sources"""
+    
+    # 1. Essayer depuis les secrets Streamlit
+    try:
+        if hasattr(st, 'secrets') and "MONGODB_URL" in st.secrets:
+            return st.secrets["MONGODB_URL"]
+    except:
+        pass
+    
+    # 2. Essayer depuis les variables d'environnement
+    try:
+        url = os.getenv("MONGODB_URL")
+        if url:
+            return url
+    except:
+        pass
+    
+    # 3. Pas d'URL par défaut pour la sécurité
+    return None
 
 # Utiliser toute la largeur de la fenêtre
 st.set_page_config(layout="wide", page_icon="🍔", page_title="BURGER - Recherche Postes RTE")
 
-# Configuration des utilisateurs
-USERS = {
-    "admin": "burger202585",
-}
+# Configuration MongoDB
+@st.cache_resource
+def init_mongodb():
+    """Initialise la connexion MongoDB"""
+    try:
+        # Utiliser notre fonction alternative
+        mongodb_url = get_mongodb_url()
+        
+        # Vérifier si l'URL est valide
+        if not mongodb_url or "username:password" in mongodb_url:
+            return None
+            
+        client = pymongo.MongoClient(
+            mongodb_url,
+            serverSelectionTimeoutMS=10000,
+            connectTimeoutMS=10000
+        )
+        
+        # Tester la connexion
+        client.admin.command('ping')
+        
+        db = client["burger_app"]
+        users_collection = db["users"]
+        
+        return users_collection
+        
+    except pymongo.errors.ServerSelectionTimeoutError as e:
+        st.error(f"❌ Timeout de connexion MongoDB : {e}")
+        return None
+    except pymongo.errors.ConfigurationError as e:
+        st.error(f"❌ Erreur de configuration MongoDB : {e}")
+        return None
+    except pymongo.errors.OperationFailure as e:
+        st.error(f"❌ Erreur d'authentification MongoDB : {e}")
+        return None
+    except Exception as e:
+        st.error(f"❌ Erreur MongoDB inattendue : {e}")
+        return None
+
+def hash_password(password):
+    """Hashe un mot de passe avec bcrypt"""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+def verify_password(password, hashed):
+    """Vérifie un mot de passe avec son hash"""
+    return bcrypt.checkpw(password.encode('utf-8'), hashed)
+
+def authenticate_user(username, password):
+    """Authentifie un utilisateur depuis MongoDB uniquement"""
+    users_collection = init_mongodb()
+    
+    # MongoDB obligatoire - pas de fallback pour la sécurité
+    if users_collection is None:
+        return False
+    
+    # Authentification MongoDB
+    try:
+        user = users_collection.find_one({"username": username})
+        
+        if user and verify_password(password, user["password_hash"]):
+            return True
+        else:
+            return False
+            
+    except Exception as e:
+        # En cas d'erreur, refuser la connexion (sécurité)
+        return False
 
 # Fonction d'authentification
 def check_password():
     def password_entered():
-        if st.session_state["username"] in USERS and USERS[st.session_state["username"]] == st.session_state["password"]:
+        # Récupérer les valeurs des champs selon le contexte
+        username = st.session_state.get("username") or st.session_state.get("username_retry", "")
+        password = st.session_state.get("password") or st.session_state.get("password_retry", "")
+        
+        if username and password and authenticate_user(username, password):
             st.session_state["password_correct"] = True
-            st.session_state["current_user"] = st.session_state["username"]
-            del st.session_state["password"]  # Supprimer le mot de passe de la session
+            st.session_state["current_user"] = username
+            # Nettoyer les mots de passe de la session
+            if "password" in st.session_state:
+                del st.session_state["password"]
+            if "password_retry" in st.session_state:
+                del st.session_state["password_retry"]
         else:
             st.session_state["password_correct"] = False
 
@@ -32,6 +128,10 @@ def check_password():
             st.text_input("👤 Nom d'utilisateur", key="username")
             st.text_input("🔒 Mot de passe", type="password", key="password")
             st.button(" Se connecter", on_click=password_entered, use_container_width=True)
+            
+            # Vérifier si MongoDB est configuré
+            if get_mongodb_url() is None:
+                st.warning("⚠️ MongoDB non configuré. Veuillez configurer MONGODB_URL dans les secrets.")
         
         st.markdown("---")
         st.markdown("💡 **Aide :** Contactez GBO pour obtenir vos identifiants")
@@ -50,6 +150,10 @@ def check_password():
             st.text_input("🔒 Mot de passe", type="password", key="password_retry")
             st.error("❌ Nom d'utilisateur ou mot de passe incorrect")
             st.button("🚀 Se connecter", on_click=password_entered, use_container_width=True)
+            
+            # Vérifier si MongoDB est configuré
+            if get_mongodb_url() is None:
+                st.warning("⚠️ MongoDB non configuré. Veuillez configurer MONGODB_URL dans les secrets.")
         
         st.markdown("---")
         st.markdown("💡 **Aide :** Contactez Guillaume B. pour obtenir vos identifiants")
@@ -107,5 +211,5 @@ if check_password():
 
     # Texte de fin et remerciements
     st.markdown("<hr style='margin-top:40px;margin-bottom:10px;'>", unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center; color:gray;'>PROOF OF CONCEPT - DB and APP by Guillaume B. 🍔</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; color:gray;'>v0.1 - DB and APP by Guillaume B. 🍔</div>", unsafe_allow_html=True)
     st.markdown("<div style='text-align:center; color:gray;'>Special thanks to Kévin G. and Hervé G.</div>", unsafe_allow_html=True)
