@@ -31,9 +31,12 @@ streamlit run app.py
 ```
 
 ## 🔐 Authentification
-- L'accès nécessite un compte utilisateur MongoDB
-- Contactez Guillaume B. pour obtenir vos identifiants
-- Environ 100 postes sur 2700 sont validés à 100% (MAJ: 28/07/2025)
+- L'authentification se fait par compte avec mot de passe hashés et stocké sur mongoDB
+- La création de compte se fait avec manage_passwords.py
+```bash
+python manage_passwords.py
+```
+- Environ 200 lignes de données sur 2700 sont validés à 100% (MAJ: 28/07/2025)
 
 ## 📁 Structure
 ```
@@ -49,4 +52,4 @@ BURGER/
 **Développé par Guillaume B.** 🍔  
 *Remerciements spéciaux à Kévin G. et Hervé G.*
 
-Version 0.1
+Version 0.1.1
