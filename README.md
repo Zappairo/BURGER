@@ -36,7 +36,7 @@ streamlit run app.py
 ```bash
 python manage_passwords.py
 ```
-- Environ 350 lignes de données sur 2700 sont validés à 100% (MAJ: 31/07/2025)
+- Environ 450 lignes de données sur 2700 sont validés à 100% (MAJ: 01/08/2025)
 
 ## 📁 Structure
 ```

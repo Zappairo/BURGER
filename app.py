@@ -182,7 +182,7 @@ if check_password():
     col1, col2, col3, col4, col5 = st.columns([1,2,3,2,1])
     with col3:
         st.markdown(
-            "<span style='color:gray;'><i>(À noter que tous les postes ne sont pas encore correctement répertoriés : environ 350 sur 2700 sont validés à 100 % - MAJ:29/07/2025)</i></span>",
+            "<span style='color:gray;'><i>(À noter que tous les postes ne sont pas encore correctement répertoriés : environ 450 sur 2700 sont validés à 100 % - MAJ:29/07/2025)</i></span>",
             unsafe_allow_html=True
         )
         search_nom = st.text_input("🔎 Entrez le nom du poste:", key="search_input")
@@ -211,5 +211,5 @@ if check_password():
 
     # Texte de fin et remerciements
     st.markdown("<hr style='margin-top:40px;margin-bottom:10px;'>", unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center; color:gray;'>v0.1.1 - DB and APP by Guillaume B. 🍔</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; color:gray;'>v0.1.2 - DB and APP by Guillaume B. 🍔</div>", unsafe_allow_html=True)
     st.markdown("<div style='text-align:center; color:gray;'>Special thanks to Kévin G. and Hervé G.</div>", unsafe_allow_html=True)
