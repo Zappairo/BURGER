@@ -1,7 +1,7 @@
 # BURGER 🍔 
 
 ## ✨ Fonctionnalités
-- 🔐 Authentification sécurisée via MongoDB
+- 🔐 Authentification MongoDB et hashage de mot de passe
 - 🔍 Recherche rapide par nom
 - 📊 Affichage des informations détaillées
 - 📍 Géolocalisation avec lien Google Maps
