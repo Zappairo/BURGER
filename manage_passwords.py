@@ -4,6 +4,7 @@ Script pour créer des mots de passe hashés et les ajouter à MongoDB
 import pymongo
 import bcrypt
 import getpass
+from datetime import datetime
 
 def hash_password(password):
     """Hashe un mot de passe avec bcrypt"""
@@ -147,7 +148,7 @@ def create_user():
             "username": username,
             "password_hash": password_hash,
             "role": role,
-            "created_at": None  # Sera défini par l'application
+            "created_at": datetime.now().strftime("%Y-%m-%d")
         }
         
         result = users_collection.insert_one(user_data)

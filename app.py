@@ -182,7 +182,7 @@ if check_password():
     col1, col2, col3, col4, col5 = st.columns([1,2,3,2,1])
     with col3:
         st.markdown(
-            "<span style='color:gray;'><i>(À noter que tous les postes ne sont pas encore correctement répertoriés : environ 450 sur 2700 sont validés à 100 % - MAJ:29/07/2025)</i></span>",
+            "<span style='color:gray;'><i>(À noter que tous les postes ne sont pas encore correctement répertoriés : environ 600 sur 2700 sont validés à 100 % - MAJ:29/07/2025)</i></span>",
             unsafe_allow_html=True
         )
         search_nom = st.text_input("🔎 Entrez le nom du poste:", key="search_input")
@@ -194,7 +194,7 @@ if check_password():
             st.success(f"📍 {len(result)} résultat(s) trouvé(s)")
             st.dataframe(result, use_container_width=True)
             
-            # Afficher les liens Google Maps pour chaque résultat
+            # Afficher les liens Google Maps et Waze pour chaque résultat
             for idx, row in result.iterrows():
                 lat = row.get('Geo Point', None)
                 if lat:
@@ -202,8 +202,14 @@ if check_password():
                         lat_str, lon_str = str(lat).split(',')
                         lat_str = lat_str.strip()
                         lon_str = lon_str.strip()
-                        url = f"https://www.google.com/maps/search/?api=1&query={lat_str},{lon_str}"
-                        st.markdown(f"📍 **{row['Nom poste']}** : [🗺️ Voir sur Google Maps]({url})")
+                        
+                        # URL Google Maps
+                        google_url = f"https://www.google.com/maps/search/?api=1&query={lat_str},{lon_str}"
+                        
+                        # URL Waze
+                        waze_url = f"https://waze.com/ul?ll={lat_str}%2C{lon_str}&navigate=yes"
+                        
+                        st.markdown(f"📍 **{row['Nom poste']}** : [🗺️ Google Maps]({google_url}) | [🚗 Waze]({waze_url})")
                     except Exception:
                         pass
         else:
