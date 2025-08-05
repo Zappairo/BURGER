@@ -7,7 +7,7 @@ developmentMode = false
 
 [client]
 showErrorDetails = false
-toolbarMode = "minimal"
+toolbarMode = "none"
 
 [theme]
 base = "dark"
