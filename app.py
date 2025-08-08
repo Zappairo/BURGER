@@ -6,6 +6,8 @@ import os
 import xml.etree.ElementTree as ET
 import folium
 from streamlit_folium import st_folium
+import pickle
+from datetime import datetime
 
 # Configuration MongoDB
 def get_mongodb_url():
@@ -28,6 +30,92 @@ def get_mongodb_url():
     
     # 3. Pas d'URL par défaut pour la sécurité
     return None
+
+# Cache pour les données KML
+@st.cache_data(ttl=3600)  # Cache pendant 1 heure
+def load_and_cache_kml_data(high_precision=False):
+    """Charge et met en cache les données KML optimisées"""
+    postes_df = parse_postes_kml_optimized()
+    gmr_df = parse_gmr_kml_optimized(high_precision)
+    return postes_df, gmr_df
+
+# Version optimisée du parser de postes
+def parse_postes_kml_optimized():
+    """Parse le fichier Poste.kml de manière optimisée"""
+    try:
+        # Vérifier si un cache local existe
+        cache_file = "postes_cache.pkl"
+        kml_file = "Poste.kml"
+        
+        # Vérifier si le cache est plus récent que le fichier KML
+        if (os.path.exists(cache_file) and os.path.exists(kml_file) and 
+            os.path.getmtime(cache_file) > os.path.getmtime(kml_file)):
+            try:
+                with open(cache_file, 'rb') as f:
+                    return pickle.load(f)
+            except:
+                pass
+        
+        # Parser le KML avec optimisations
+        tree = ET.parse(kml_file)
+        root = tree.getroot()
+        
+        # Namespace KML
+        ns = {'kml': 'http://www.opengis.net/kml/2.2'}
+        
+        postes_data = []
+        
+        # Parcourir tous les Placemark avec limitation
+        placemarks = root.findall('.//kml:Placemark', ns)
+        
+        for placemark in placemarks:
+            # Récupérer les données étendues
+            extended_data = placemark.find('.//kml:ExtendedData/kml:SchemaData', ns)
+            if extended_data is not None:
+                poste_info = {}
+                
+                # Extraire seulement les données essentielles
+                essential_fields = ['Nom_du_pos', 'Identifian', 'Tension_d', 'Tension_00']
+                
+                for simple_data in extended_data.findall('kml:SimpleData', ns):
+                    name = simple_data.get('name')
+                    value = simple_data.text
+                    if name in essential_fields and value:
+                        poste_info[name] = value
+                
+                # Récupérer les coordonnées
+                coordinates = placemark.find('.//kml:coordinates', ns)
+                if coordinates is not None and coordinates.text:
+                    coords = coordinates.text.strip().split(',')
+                    if len(coords) >= 2:
+                        try:
+                            poste_info['longitude'] = float(coords[0])
+                            poste_info['latitude'] = float(coords[1])
+                        except ValueError:
+                            continue
+                
+                # Ne garder que les postes avec coordonnées et nom
+                if 'longitude' in poste_info and 'latitude' in poste_info and 'Nom_du_pos' in poste_info:
+                    postes_data.append(poste_info)
+        
+        df = pd.DataFrame(postes_data)
+        
+        # Renommer les colonnes pour compatibilité
+        if 'Nom_du_pos' in df.columns:
+            df['Nom poste'] = df['Nom_du_pos']
+        
+        # Sauvegarder en cache
+        try:
+            with open(cache_file, 'wb') as f:
+                pickle.dump(df, f)
+        except:
+            pass
+        
+        return df
+        
+    except Exception as e:
+        st.error(f"Erreur lors du parsing du fichier Poste.kml : {e}")
+        return pd.DataFrame()
 
 # Fonction pour parser le KML des postes
 def parse_postes_kml():
@@ -77,6 +165,104 @@ def parse_postes_kml():
         
     except Exception as e:
         st.error(f"Erreur lors du parsing du fichier Poste.kml : {e}")
+        return pd.DataFrame()
+
+# Version optimisée du parser GMR
+def parse_gmr_kml_optimized(high_precision=False):
+    """Parse le fichier GMR.kml de manière optimisée"""
+    try:
+        # Vérifier si un cache local existe (avec clé de précision)
+        cache_suffix = "_hq" if high_precision else ""
+        cache_file = f"gmr_cache{cache_suffix}.pkl"
+        kml_file = "GMR.kml"
+        
+        # Vérifier si le cache est plus récent que le fichier KML
+        if (os.path.exists(cache_file) and os.path.exists(kml_file) and 
+            os.path.getmtime(cache_file) > os.path.getmtime(kml_file)):
+            try:
+                with open(cache_file, 'rb') as f:
+                    return pickle.load(f)
+            except:
+                pass
+        
+        tree = ET.parse(kml_file)
+        root = tree.getroot()
+        
+        # Namespace KML
+        ns = {'kml': 'http://www.opengis.net/kml/2.2'}
+        
+        gmr_data = []
+        
+        # Parcourir tous les Placemark
+        for placemark in root.findall('.//kml:Placemark', ns):
+            # Récupérer les données étendues
+            extended_data = placemark.find('.//kml:ExtendedData/kml:SchemaData', ns)
+            if extended_data is not None:
+                gmr_info = {}
+                
+                # Extraire seulement les données essentielles
+                for simple_data in extended_data.findall('kml:SimpleData', ns):
+                    name = simple_data.get('name')
+                    value = simple_data.text
+                    if name and value:
+                        gmr_info[name] = value
+                
+                # Récupérer la géométrie (avec précision variable)
+                geometry = placemark.find('.//kml:Polygon/kml:outerBoundaryIs/kml:LinearRing/kml:coordinates', ns)
+                if geometry is not None and geometry.text:
+                    # Parser les coordonnées du polygone
+                    coords_text = geometry.text.strip()
+                    coord_pairs = []
+                    coords_list = coords_text.split()
+                    
+                    if high_precision:
+                        # Mode haute précision : garder beaucoup plus de points
+                        if len(coords_list) <= 200:
+                            step = 1  # Tous les points
+                        elif len(coords_list) <= 1000:
+                            step = max(1, len(coords_list) // 500)  # Jusqu'à 500 points
+                        else:
+                            step = max(1, len(coords_list) // 800)  # Jusqu'à 800 points
+                    else:
+                        # Mode optimisé : simplification adaptative
+                        if len(coords_list) <= 100:
+                            step = 1  # Garder tous les points pour les petits polygones
+                        elif len(coords_list) <= 500:
+                            step = max(1, len(coords_list) // 200)  # Jusqu'à 200 points
+                        elif len(coords_list) <= 2000:
+                            step = max(1, len(coords_list) // 300)  # Jusqu'à 300 points
+                        else:
+                            step = max(1, len(coords_list) // 400)  # Jusqu'à 400 points max
+                    
+                    for i in range(0, len(coords_list), step):
+                        coord = coords_list[i]
+                        if ',' in coord:
+                            parts = coord.split(',')
+                            if len(parts) >= 2:
+                                try:
+                                    coord_pairs.append([float(parts[1]), float(parts[0])])  # [lat, lon]
+                                except ValueError:
+                                    continue
+                    
+                    if coord_pairs:
+                        gmr_info['coordinates'] = coord_pairs
+                
+                if gmr_info and 'Siège_du_' in gmr_info:
+                    gmr_data.append(gmr_info)
+        
+        df = pd.DataFrame(gmr_data)
+        
+        # Sauvegarder en cache
+        try:
+            with open(cache_file, 'wb') as f:
+                pickle.dump(df, f)
+        except:
+            pass
+        
+        return df
+        
+    except Exception as e:
+        st.error(f"Erreur lors du parsing du fichier GMR.kml : {e}")
         return pd.DataFrame()
 
 # Fonction pour parser le KML des GMR
@@ -129,15 +315,21 @@ def parse_gmr_kml():
         st.error(f"Erreur lors du parsing du fichier GMR.kml : {e}")
         return pd.DataFrame()
 
-# Fonction pour vérifier si un point est dans un polygone
+# Fonction pour vérifier si un point est dans un polygone (optimisée)
 def point_in_polygon(point_lat, point_lon, polygon_coords):
-    """Vérifie si un point est à l'intérieur d'un polygone en utilisant l'algorithme ray casting"""
+    """Vérifie si un point est à l'intérieur d'un polygone - version optimisée"""
     try:
         x, y = float(point_lon), float(point_lat)
         n = len(polygon_coords)
         inside = False
         
-        p1x, p1y = polygon_coords[0][1], polygon_coords[0][0]  # [lat, lon] -> lon, lat
+        # Vérification rapide des limites pour éviter les calculs inutiles
+        lats = [coord[0] for coord in polygon_coords]
+        lons = [coord[1] for coord in polygon_coords]
+        if not (min(lats) <= y <= max(lats) and min(lons) <= x <= max(lons)):
+            return False
+        
+        p1x, p1y = polygon_coords[0][1], polygon_coords[0][0]
         for i in range(1, n + 1):
             p2x, p2y = polygon_coords[i % n][1], polygon_coords[i % n][0]
             if y > min(p1y, p2y):
@@ -153,9 +345,10 @@ def point_in_polygon(point_lat, point_lon, polygon_coords):
     except:
         return False
 
-# Fonction pour trouver le GMR d'un poste
+# Cache pour les recherches GMR
+@st.cache_data(ttl=1800)  # Cache pendant 30 minutes
 def find_gmr_for_poste(poste_lat, poste_lon, gmr_df):
-    """Trouve le GMR qui contient le poste donné"""
+    """Trouve le GMR qui contient le poste donné - version avec cache"""
     try:
         for idx, gmr in gmr_df.iterrows():
             if 'coordinates' in gmr and gmr['coordinates']:
@@ -165,16 +358,31 @@ def find_gmr_for_poste(poste_lat, poste_lon, gmr_df):
     except:
         return None
 
-# Fonction pour créer la carte avec GMR et postes
-def create_map_with_gmr(postes_result, gmr_df):
-    """Crée une carte avec les GMR et les postes trouvés"""
+# Fonction pour créer la carte avec GMR et postes (optimisée)
+def create_map_with_gmr(postes_result, gmr_df, show_all_gmr=False):
+    """Crée une carte avec les GMR et les postes trouvés - version optimisée"""
     # Créer la carte centrée sur la France
     m = folium.Map(location=[46.603354, 1.888334], zoom_start=6)
     
+    # Ajouter seulement les GMR pertinents si show_all_gmr=False
+    if show_all_gmr:
+        gmr_to_show = gmr_df
+    else:
+        # Ne montrer que les GMR qui contiennent des postes recherchés
+        relevant_gmr_indices = set()
+        for idx, poste in postes_result.iterrows():
+            if 'latitude' in poste and 'longitude' in poste:
+                for gmr_idx, gmr in gmr_df.iterrows():
+                    if 'coordinates' in gmr and gmr['coordinates']:
+                        if point_in_polygon(poste['latitude'], poste['longitude'], gmr['coordinates']):
+                            relevant_gmr_indices.add(gmr_idx)
+                            break
+        
+        gmr_to_show = gmr_df.loc[list(relevant_gmr_indices)] if relevant_gmr_indices else pd.DataFrame()
+    
     # Ajouter les GMR (polygones)
-    for idx, gmr in gmr_df.iterrows():
+    for idx, gmr in gmr_to_show.iterrows():
         if 'coordinates' in gmr and gmr['coordinates']:
-            # Créer le popup avec les informations GMR
             popup_text = f"""
             <b>GMR:</b> {gmr.get('GMR_alias', 'N/A')}<br>
             <b>Code:</b> {gmr.get('GMR', 'N/A')}<br>
@@ -199,7 +407,6 @@ def create_map_with_gmr(postes_result, gmr_df):
             if gmr_info is not None:
                 gmr_text = f"<br><b>GMR:</b> {gmr_info.get('GMR_alias', 'N/A')}<br><b>Siège GMR:</b> {gmr_info.get('Siège_du_', 'N/A')}"
             
-            # Créer le popup avec les informations du poste et du GMR
             popup_text = f"""
             <b>Poste:</b> {poste.get('Nom poste', poste.get('Nom_du_pos', 'N/A'))}<br>
             <b>ID:</b> {poste.get('Identifian', 'N/A')}<br>
@@ -363,26 +570,40 @@ if check_password():
             del st.session_state["current_user"]
             st.rerun()
 
-    # Charger les données KML
-    with st.spinner("Chargement des données KML..."):
-        postes_df = parse_postes_kml()
-        gmr_df = parse_gmr_kml()
+    # Options de performance (disponibles avant le chargement)
+    with st.expander("⚙️ Options de performance", expanded=False):
+        high_precision = st.checkbox("🎯 Précision maximale des polygones GMR (plus lent au chargement)", value=False)
+        st.info("💡 La précision maximale améliore les contours des GMR mais augmente le temps de chargement initial.")
+
+    # Charger les données KML avec cache et indicateur de progression
+    cache_key = f"data_loaded_{high_precision}"
+    if cache_key not in st.session_state:
+        with st.spinner("🔄 Chargement initial des données (mis en cache pour les prochaines utilisations)..."):
+            postes_df, gmr_df = load_and_cache_kml_data(high_precision)
+            st.session_state[cache_key] = True
+            st.session_state['current_precision'] = high_precision
+    else:
+        # Vérifier si la précision a changé
+        if st.session_state.get('current_precision', False) != high_precision:
+            with st.spinner("🔄 Rechargement avec nouvelle précision..."):
+                postes_df, gmr_df = load_and_cache_kml_data(high_precision)
+                st.session_state['current_precision'] = high_precision
+        else:
+            # Chargement rapide depuis le cache
+            postes_df, gmr_df = load_and_cache_kml_data(high_precision)
     
     if postes_df.empty:
         st.error("❌ Impossible de charger les données des postes depuis le fichier KML")
     elif gmr_df.empty:
         st.error("❌ Impossible de charger les données des GMR depuis le fichier KML")
     else:
-        st.success(f"✅ Données chargées : {len(postes_df)} postes et {len(gmr_df)} GMR")
-
         # Interface de recherche
         col1, col2, col3, col4, col5 = st.columns([1,2,3,2,1])
         with col3:
-            st.markdown(
-                "<span style='color:gray;'><i>(À noter que tous les postes ne sont pas encore correctement répertoriés : environ 1100 sur 2700 sont validés à 100 % - MAJ:08/08/2025)</i></span>",
-                unsafe_allow_html=True
-            )
             search_nom = st.text_input("🔎 Entrez le nom du poste:", key="search_input")
+            
+            # Option pour afficher tous les GMR ou seulement ceux pertinents
+            show_all_gmr = st.checkbox("🗺️ Afficher tous les GMR sur la carte", value=False)
 
         if search_nom:
             # Filtrer les postes
@@ -390,8 +611,6 @@ if check_password():
             result = postes_df[postes_df[nom_col].str.lower().str.contains(search_nom.lower(), na=False)]
             
             if not result.empty:
-                st.success(f"📍 {len(result)} résultat(s) trouvé(s)")
-                
                 # Créer deux colonnes : tableau et carte
                 col_table, col_map = st.columns([1, 1])
                 
@@ -435,18 +654,20 @@ if check_password():
                 
                 with col_map:
                     st.subheader("🗺️ Carte des postes et GMR")
-                    # Créer et afficher la carte
-                    map_obj = create_map_with_gmr(result, gmr_df)
                     
-                    # Afficher la carte avec une clé unique pour éviter le re-rendu
-                    map_key = f"map_{hash(search_nom)}_{len(result)}"
-                    
-                    st_folium(
-                        map_obj, 
-                        width=700, 
-                        height=500,
-                        key=map_key
-                    )
+                    with st.spinner("🗺️ Génération de la carte..."):
+                        # Créer et afficher la carte
+                        map_obj = create_map_with_gmr(result, gmr_df, show_all_gmr)
+                        
+                        # Afficher la carte avec une clé unique pour éviter le re-rendu
+                        map_key = f"map_{hash(search_nom)}_{len(result)}_{show_all_gmr}"
+                        
+                        st_folium(
+                            map_obj, 
+                            width=700, 
+                            height=500,
+                            key=map_key
+                        )
                     
                     # Légende
                     st.markdown("""
@@ -454,11 +675,11 @@ if check_password():
                     - 🔴 **Marqueurs rouges** : Postes électriques trouvés
                     - 🔵 **Zones bleues** : Groupements de Maintenance Régionale (GMR)
                     """)
-                
+                    
             else:
                 st.warning("❌ Aucun poste trouvé avec ce nom.")
 
     # Texte de fin et remerciements
     st.markdown("<hr style='margin-top:40px;margin-bottom:10px;'>", unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center; color:gray;'>v0.2.0 - DB and APP by Guillaume B. 🍔 - Données KML intégrées</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; color:gray;'>v0.3.0 - DB and APP by Guillaume B. 🍔 - Version optimisée avec cache</div>", unsafe_allow_html=True)
     st.markdown("<div style='text-align:center; color:gray;'>Special thanks to Kévin G. and Hervé G.</div>", unsafe_allow_html=True)
