@@ -37,7 +37,8 @@ def load_and_cache_kml_data(high_precision=False):
     """Charge et met en cache les données KML optimisées"""
     postes_df = parse_postes_kml_optimized()
     gmr_df = parse_gmr_kml_optimized(high_precision)
-    return postes_df, gmr_df
+    gdp_df = parse_gdp_kml_optimized(high_precision)
+    return postes_df, gmr_df, gdp_df
 
 # Version optimisée du parser de postes
 def parse_postes_kml_optimized():
@@ -217,12 +218,7 @@ def parse_gmr_kml_optimized(high_precision=False):
                     
                     if high_precision:
                         # Mode haute précision : garder beaucoup plus de points
-                        if len(coords_list) <= 200:
-                            step = 1  # Tous les points
-                        elif len(coords_list) <= 1000:
-                            step = max(1, len(coords_list) // 500)  # Jusqu'à 500 points
-                        else:
-                            step = max(1, len(coords_list) // 800)  # Jusqu'à 800 points
+                        step = 1  # Garder tous les points
                     else:
                         # Mode optimisé : simplification adaptative
                         if len(coords_list) <= 100:
@@ -263,6 +259,108 @@ def parse_gmr_kml_optimized(high_precision=False):
         
     except Exception as e:
         st.error(f"Erreur lors du parsing du fichier GMR.kml : {e}")
+        return pd.DataFrame()
+
+# Version optimisée du parser GDP
+def parse_gdp_kml_optimized(high_precision=False):
+    """Parse le fichier GDP.kml de manière optimisée"""
+    try:
+        # Vérifier si un cache local existe (avec clé de précision)
+        cache_suffix = "_hq" if high_precision else ""
+        cache_file = f"gdp_cache{cache_suffix}.pkl"
+        kml_file = "GDP.kml"
+        
+        # Vérifier si le cache est plus récent que le fichier KML
+        if (os.path.exists(cache_file) and os.path.exists(kml_file) and 
+            os.path.getmtime(cache_file) > os.path.getmtime(kml_file)):
+            try:
+                with open(cache_file, 'rb') as f:
+                    return pickle.load(f)
+            except:
+                pass
+        
+        tree = ET.parse(kml_file)
+        root = tree.getroot()
+        
+        # Namespace KML
+        ns = {'kml': 'http://www.opengis.net/kml/2.2'}
+        
+        gdp_data = []
+        
+        # Parcourir tous les Placemark
+        for placemark in root.findall('.//kml:Placemark', ns):
+            # Récupérer les données étendues
+            extended_data = placemark.find('.//kml:ExtendedData/kml:SchemaData', ns)
+            if extended_data is not None:
+                gdp_info = {}
+                
+                # Extraire seulement les données essentielles
+                for simple_data in extended_data.findall('kml:SimpleData', ns):
+                    name = simple_data.get('name')
+                    value = simple_data.text
+                    if name and value:
+                        gdp_info[name] = value
+                
+                # Récupérer la géométrie (avec précision variable)
+                geometry = placemark.find('.//kml:Polygon/kml:outerBoundaryIs/kml:LinearRing/kml:coordinates', ns)
+                if geometry is None:
+                    # Essayer MultiGeometry pour les GDP
+                    geometry = placemark.find('.//kml:MultiGeometry/kml:Polygon/kml:outerBoundaryIs/kml:LinearRing/kml:coordinates', ns)
+                
+                if geometry is not None and geometry.text:
+                    # Parser les coordonnées du polygone
+                    coords_text = geometry.text.strip()
+                    coord_pairs = []
+                    coords_list = coords_text.split()
+                    
+                    if high_precision:
+                        # Mode haute précision : garder beaucoup plus de points
+                        if len(coords_list) <= 200:
+                            step = 1  # Tous les points
+                        elif len(coords_list) <= 1000:
+                            step = max(1, len(coords_list) // 500)  # Jusqu'à 500 points
+                        else:
+                            step = max(1, len(coords_list) // 800)  # Jusqu'à 800 points
+                    else:
+                        # Mode optimisé : simplification adaptative
+                        if len(coords_list) <= 100:
+                            step = 1  # Garder tous les points pour les petits polygones
+                        elif len(coords_list) <= 500:
+                            step = max(1, len(coords_list) // 200)  # Jusqu'à 200 points
+                        elif len(coords_list) <= 2000:
+                            step = max(1, len(coords_list) // 300)  # Jusqu'à 300 points
+                        else:
+                            step = max(1, len(coords_list) // 400)  # Jusqu'à 400 points max
+                    
+                    for i in range(0, len(coords_list), step):
+                        coord = coords_list[i]
+                        if ',' in coord:
+                            parts = coord.split(',')
+                            if len(parts) >= 2:
+                                try:
+                                    coord_pairs.append([float(parts[1]), float(parts[0])])  # [lat, lon]
+                                except ValueError:
+                                    continue
+                    
+                    if coord_pairs:
+                        gdp_info['coordinates'] = coord_pairs
+                
+                if gdp_info and 'Poste' in gdp_info:
+                    gdp_data.append(gdp_info)
+        
+        df = pd.DataFrame(gdp_data)
+        
+        # Sauvegarder en cache
+        try:
+            with open(cache_file, 'wb') as f:
+                pickle.dump(df, f)
+        except:
+            pass
+        
+        return df
+        
+    except Exception as e:
+        st.error(f"Erreur lors du parsing du fichier GDP.kml : {e}")
         return pd.DataFrame()
 
 # Fonction pour parser le KML des GMR
@@ -358,9 +456,22 @@ def find_gmr_for_poste(poste_lat, poste_lon, gmr_df):
     except:
         return None
 
-# Fonction pour créer la carte avec GMR et postes (optimisée)
-def create_map_with_gmr(postes_result, gmr_df, show_all_gmr=False):
-    """Crée une carte avec les GMR et les postes trouvés - version optimisée"""
+# Cache pour les recherches GDP
+@st.cache_data(ttl=1800)  # Cache pendant 30 minutes
+def find_gdp_for_poste(poste_lat, poste_lon, gdp_df):
+    """Trouve le GDP qui contient le poste donné - version avec cache"""
+    try:
+        for idx, gdp in gdp_df.iterrows():
+            if 'coordinates' in gdp and gdp['coordinates']:
+                if point_in_polygon(poste_lat, poste_lon, gdp['coordinates']):
+                    return gdp
+        return None
+    except:
+        return None
+
+# Fonction pour créer la carte avec GMR, GDP et postes (optimisée)
+def create_map_with_gmr_gdp(postes_result, gmr_df, gdp_df, show_all_gmr=False, show_all_gdp=False):
+    """Crée une carte avec les GMR, GDP et les postes trouvés - version optimisée"""
     # Créer la carte centrée sur la France
     m = folium.Map(location=[46.603354, 1.888334], zoom_start=6)
     
@@ -380,7 +491,23 @@ def create_map_with_gmr(postes_result, gmr_df, show_all_gmr=False):
         
         gmr_to_show = gmr_df.loc[list(relevant_gmr_indices)] if relevant_gmr_indices else pd.DataFrame()
     
-    # Ajouter les GMR (polygones)
+    # Ajouter seulement les GDP pertinents si show_all_gdp=False
+    if show_all_gdp:
+        gdp_to_show = gdp_df
+    else:
+        # Ne montrer que les GDP qui contiennent des postes recherchés
+        relevant_gdp_indices = set()
+        for idx, poste in postes_result.iterrows():
+            if 'latitude' in poste and 'longitude' in poste:
+                for gdp_idx, gdp in gdp_df.iterrows():
+                    if 'coordinates' in gdp and gdp['coordinates']:
+                        if point_in_polygon(poste['latitude'], poste['longitude'], gdp['coordinates']):
+                            relevant_gdp_indices.add(gdp_idx)
+                            break
+        
+        gdp_to_show = gdp_df.loc[list(relevant_gdp_indices)] if relevant_gdp_indices else pd.DataFrame()
+    
+    # Ajouter les GMR (polygones en bleu)
     for idx, gmr in gmr_to_show.iterrows():
         if 'coordinates' in gmr and gmr['coordinates']:
             popup_text = f"""
@@ -398,6 +525,26 @@ def create_map_with_gmr(postes_result, gmr_df, show_all_gmr=False):
                 fillOpacity=0.3
             ).add_to(m)
     
+    # Ajouter les GDP (polygones en vert)
+    for idx, gdp in gdp_to_show.iterrows():
+        if 'coordinates' in gdp and gdp['coordinates']:
+            popup_text = f"""
+            <b>GDP - Poste:</b> {gdp.get('Poste', 'N/A')}<br>
+            <b>Code:</b> {gdp.get('Code', 'N/A')}<br>
+            <b>Centre:</b> {gdp.get('Nom_du_cen', 'N/A')}<br>
+            <b>GMR:</b> {gdp.get('GMR', 'N/A')}<br>
+            <b>Siège:</b> {gdp.get('Siège_du_', 'N/A')}
+            """
+            
+            folium.Polygon(
+                locations=gdp['coordinates'],
+                popup=folium.Popup(popup_text, max_width=300),
+                color='green',
+                weight=2,
+                fillColor='lightgreen',
+                fillOpacity=0.2
+            ).add_to(m)
+    
     # Ajouter les postes trouvés
     for idx, poste in postes_result.iterrows():
         if 'latitude' in poste and 'longitude' in poste:
@@ -407,15 +554,21 @@ def create_map_with_gmr(postes_result, gmr_df, show_all_gmr=False):
             if gmr_info is not None:
                 gmr_text = f"<br><b>GMR:</b> {gmr_info.get('GMR_alias', 'N/A')}<br><b>Siège GMR:</b> {gmr_info.get('Siège_du_', 'N/A')}"
             
+            # Trouver le GDP correspondant
+            gdp_info = find_gdp_for_poste(poste['latitude'], poste['longitude'], gdp_df)
+            gdp_text = ""
+            if gdp_info is not None:
+                gdp_text = f"<br><b>GDP:</b> {gdp_info.get('Poste', 'N/A')}<br><b>Code GDP:</b> {gdp_info.get('Code', 'N/A')}<br><b>Centre GDP:</b> {gdp_info.get('Nom_du_cen', 'N/A')}"
+            
             popup_text = f"""
             <b>Poste:</b> {poste.get('Nom poste', poste.get('Nom_du_pos', 'N/A'))}<br>
             <b>ID:</b> {poste.get('Identifian', 'N/A')}<br>
-            <b>Tension:</b> {poste.get('Tension_d', 'N/A')}{gmr_text}
+            <b>Tension:</b> {poste.get('Tension_d', 'N/A')}{gmr_text}{gdp_text}
             """
             
             folium.Marker(
                 location=[poste['latitude'], poste['longitude']],
-                popup=folium.Popup(popup_text, max_width=300),
+                popup=folium.Popup(popup_text, max_width=350),
                 icon=folium.Icon(color='red', icon='bolt')
             ).add_to(m)
     
@@ -560,7 +713,7 @@ def check_password():
 # Vérifier l'authentification
 if check_password():
     # Header avec info utilisateur et déconnexion
-    col1, col2, col3 = st.columns([2, 1, 1])
+    col1, col2, col3 = st.columns([6, 1, 1])
     with col1:
         st.title("BURGER 🍔 : Base Unifiée de Référencement des Grands Equipements RTE")
     with col3:
@@ -579,31 +732,37 @@ if check_password():
     cache_key = f"data_loaded_{high_precision}"
     if cache_key not in st.session_state:
         with st.spinner("🔄 Chargement initial des données (mis en cache pour les prochaines utilisations)..."):
-            postes_df, gmr_df = load_and_cache_kml_data(high_precision)
+            postes_df, gmr_df, gdp_df = load_and_cache_kml_data(high_precision)
             st.session_state[cache_key] = True
             st.session_state['current_precision'] = high_precision
     else:
         # Vérifier si la précision a changé
         if st.session_state.get('current_precision', False) != high_precision:
             with st.spinner("🔄 Rechargement avec nouvelle précision..."):
-                postes_df, gmr_df = load_and_cache_kml_data(high_precision)
+                postes_df, gmr_df, gdp_df = load_and_cache_kml_data(high_precision)
                 st.session_state['current_precision'] = high_precision
         else:
             # Chargement rapide depuis le cache
-            postes_df, gmr_df = load_and_cache_kml_data(high_precision)
+            postes_df, gmr_df, gdp_df = load_and_cache_kml_data(high_precision)
     
     if postes_df.empty:
         st.error("❌ Impossible de charger les données des postes depuis le fichier KML")
     elif gmr_df.empty:
         st.error("❌ Impossible de charger les données des GMR depuis le fichier KML")
+    elif gdp_df.empty:
+        st.error("❌ Impossible de charger les données des GDP depuis le fichier KML")
     else:
         # Interface de recherche
         col1, col2, col3, col4, col5 = st.columns([1,2,3,2,1])
         with col3:
             search_nom = st.text_input("🔎 Entrez le nom du poste:", key="search_input")
             
-            # Option pour afficher tous les GMR ou seulement ceux pertinents
-            show_all_gmr = st.checkbox("🗺️ Afficher tous les GMR sur la carte", value=False)
+            # Options pour afficher les GMR et GDP
+            col_gmr, col_gdp = st.columns(2)
+            with col_gmr:
+                show_all_gmr = st.checkbox("🔵 Afficher tous les GMR", value=False)
+            with col_gdp:
+                show_all_gdp = st.checkbox("🟢 Afficher tous les GDP", value=False)
 
         if search_nom:
             # Filtrer les postes
@@ -619,48 +778,76 @@ if check_password():
                     # Afficher le tableau des résultats
                     display_cols = [col for col in result.columns if col in ['Nom poste', 'Nom_du_pos', 'Identifian', 'Tension_d', 'latitude', 'longitude']]
                     st.dataframe(result[display_cols], use_container_width=True)
-                    
-                    # Afficher les informations GMR pour chaque poste
-                    st.subheader("🏢 Informations GMR")
-                    for idx, row in result.iterrows():
-                        if 'latitude' in row and 'longitude' in row and pd.notna(row['latitude']) and pd.notna(row['longitude']):
-                            poste_name = row.get('Nom poste', row.get('Nom_du_pos', 'Poste inconnu'))
-                            gmr_info = find_gmr_for_poste(row['latitude'], row['longitude'], gmr_df)
-                            
-                            if gmr_info is not None:
-                                st.success(f"📍 **{poste_name}**")
-                                st.write(f"• **GMR :** {gmr_info.get('GMR_alias', 'N/A')}")
-                                st.write(f"• **Code GMR :** {gmr_info.get('GMR', 'N/A')}")
-                                st.write(f"• **Siège :** {gmr_info.get('Siège_du_', 'N/A')}")
-                                st.write("---")
-                            else:
-                                st.warning(f"📍 **{poste_name}** - GMR non identifié")
-                    
+
                     # Afficher les liens Google Maps et Waze pour chaque résultat
                     st.subheader("🗺️ Liens de navigation")
                     for idx, row in result.iterrows():
                         if 'latitude' in row and 'longitude' in row and pd.notna(row['latitude']) and pd.notna(row['longitude']):
                             lat_str = str(row['latitude'])
                             lon_str = str(row['longitude'])
-                            
                             # URL Google Maps
                             google_url = f"https://www.google.com/maps/search/?api=1&query={lat_str},{lon_str}"
-                            
                             # URL Waze
                             waze_url = f"https://waze.com/ul?ll={lat_str}%2C{lon_str}&navigate=yes"
-                            
                             poste_name = row.get('Nom poste', row.get('Nom_du_pos', 'Poste inconnu'))
                             st.markdown(f"📍 **{poste_name}** : [🗺️ Google Maps]({google_url}) | [🚗 Waze]({waze_url})")
+                            
+
+                    # Afficher les informations GMR et GDP regroupées
+                    st.subheader("🏢 Informations GMR et GDP :")
+                    gmr_postes = {}
+                    gdp_postes = {}
+                    for idx, row in result.iterrows():
+                        if 'latitude' in row and 'longitude' in row and pd.notna(row['latitude']) and pd.notna(row['longitude']):
+                            # Informations GMR
+                            gmr_info = find_gmr_for_poste(row['latitude'], row['longitude'], gmr_df)
+                            if gmr_info is not None:
+                                gmr_key = (gmr_info.get('GMR_alias', 'N/A'), gmr_info.get('GMR', 'N/A'), gmr_info.get('Siège_du_', 'N/A'))
+                                poste_name = row.get('Nom poste', row.get('Nom_du_pos', 'Poste inconnu'))
+                                if gmr_key not in gmr_postes:
+                                    gmr_postes[gmr_key] = []
+                                gmr_postes[gmr_key].append(poste_name)
+                            # Informations GDP
+                            gdp_info = find_gdp_for_poste(row['latitude'], row['longitude'], gdp_df)
+                            if gdp_info is not None:
+                                gdp_key = (gdp_info.get('Poste', 'N/A'), gdp_info.get('Code', 'N/A'), gdp_info.get('Nom_du_cen', 'N/A'), gdp_info.get('Siège_du_', 'N/A'))
+                                poste_name = row.get('Nom poste', row.get('Nom_du_pos', 'Poste inconnu'))
+                                if gdp_key not in gdp_postes:
+                                    gdp_postes[gdp_key] = []
+                                gdp_postes[gdp_key].append(poste_name)
+                    # Afficher les GMR
+                    if gmr_postes:
+                        st.markdown("### 🔵 Groupements de Maintenance Régionale (GMR)")
+                        for gmr_key, postes in gmr_postes.items():
+                            gmr_alias, gmr_code, gmr_siege = gmr_key
+                            st.info(f"📍 {', '.join(postes)}")
+                            st.write(f"• **GMR :** {gmr_alias}")
+                            st.write(f"• **Code GMR :** {gmr_code}")
+                            st.write(f"• **Siège :** {gmr_siege}")
+                    else:
+                        st.warning("Aucun GMR identifié pour les postes trouvés.")
+                    # Afficher les GDP
+                    if gdp_postes:
+                        st.markdown("### 🟢 Groupements De Poste (GDP)")
+                        for gdp_key, postes in gdp_postes.items():
+                            gdp_poste, gdp_code, gdp_centre, gdp_siege = gdp_key
+                            st.success(f"📍 {', '.join(postes)}")
+                            st.write(f"• **GDP :** {gdp_poste}")
+                            st.write(f"• **Code GDP :** {gdp_code}")
+                            st.write(f"• **Centre :** {gdp_centre}")
+                            st.write(f"• **Siège :** {gdp_siege}")
+                    else:
+                        st.warning("Aucun GDP identifié pour les postes trouvés.")
                 
                 with col_map:
-                    st.subheader("🗺️ Carte des postes et GMR")
+                    st.subheader("🗺️ Carte des postes, GMR et GDP")
                     
                     with st.spinner("🗺️ Génération de la carte..."):
                         # Créer et afficher la carte
-                        map_obj = create_map_with_gmr(result, gmr_df, show_all_gmr)
+                        map_obj = create_map_with_gmr_gdp(result, gmr_df, gdp_df, show_all_gmr, show_all_gdp)
                         
                         # Afficher la carte avec une clé unique pour éviter le re-rendu
-                        map_key = f"map_{hash(search_nom)}_{len(result)}_{show_all_gmr}"
+                        map_key = f"map_{hash(search_nom)}_{len(result)}_{show_all_gmr}_{show_all_gdp}"
                         
                         st_folium(
                             map_obj, 
@@ -674,12 +861,14 @@ if check_password():
                     **Légende :**
                     - 🔴 **Marqueurs rouges** : Postes électriques trouvés
                     - 🔵 **Zones bleues** : Groupements de Maintenance Régionale (GMR)
+                    - 🟢 **Zones vertes** : Groupements De Poste (GDP)
                     """)
+                    
                     
             else:
                 st.warning("❌ Aucun poste trouvé avec ce nom.")
 
     # Texte de fin et remerciements
     st.markdown("<hr style='margin-top:40px;margin-bottom:10px;'>", unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center; color:gray;'>v0.3.0 - DB and APP by Guillaume B. 🍔 - Version optimisée avec cache</div>", unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center; color:gray;'>Special thanks to Kévin G. and Hervé G.</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; color:gray;'>v0.4.0 - DB and APP by Guillaume B. 🍔</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; color:gray;'>Special thanks to PascaL B. , Kévin G. and Hervé G.</div>", unsafe_allow_html=True)

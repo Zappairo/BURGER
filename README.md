@@ -36,7 +36,6 @@ streamlit run app.py
 ```bash
 python manage_passwords.py
 ```
-- Environ 1100 lignes de données sur 2700 sont validés à 100% (MAJ: 07/08/2025)
 
 ## 📁 Structure
 ```
@@ -50,6 +49,6 @@ BURGER/
 
 ---
 **Développé par Guillaume B.** 🍔  
-*Remerciements spéciaux à Kévin G. et Hervé G.*
+*Remerciements spéciaux à Pascal B. , Kévin G. et Hervé G.*
 
-Version 0.1.6
+Version 0.4.0
