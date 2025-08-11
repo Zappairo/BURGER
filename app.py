@@ -761,7 +761,7 @@ if check_password():
         col1, col2, col3, col4, col5 = st.columns([1,2,3,2,1])
         with col3:
             search_nom = st.text_input("🔎 Entrez le nom du poste:", key="search_input")
-            
+
             # Options pour afficher les GMR et GDP
             col_gmr, col_gdp = st.columns(2)
             with col_gmr:
@@ -771,8 +771,27 @@ if check_password():
 
         if search_nom:
             # Filtrer les postes
+            import re
             nom_col = 'Nom poste' if 'Nom poste' in postes_df.columns else 'Nom_du_pos'
-            result = postes_df[postes_df[nom_col].str.lower().str.contains(search_nom.lower(), na=False)]
+            import unicodedata
+            ARTICLES = {"le", "la", "les", "l"}
+            def clean_and_split(s):
+                if pd.isna(s):
+                    return []
+                import unicodedata
+                s = str(s).lower()
+                s = unicodedata.normalize('NFKD', s)
+                s = ''.join([c for c in s if not unicodedata.combining(c)])
+                s = re.sub(r"[-()]+", " ", s) # remplace tirets et parenthèses par espace
+                words = [w for w in s.split() if w not in ARTICLES]
+                return sorted(words)
+            # Nettoyer les noms de poste
+            postes_df["_nom_clean_list"] = postes_df[nom_col].apply(clean_and_split)
+            search_nom_clean_list = clean_and_split(search_nom)
+            # Recherche : tous les postes dont les mots (hors articles) correspondent peu importe l'ordre
+            def match_words(row_words, search_words):
+                return set(search_words) <= set(row_words)
+            result = postes_df[postes_df["_nom_clean_list"].apply(lambda x: match_words(x, search_nom_clean_list))]
             
             if not result.empty:
                 # Créer deux colonnes : tableau et carte
@@ -780,13 +799,24 @@ if check_password():
                 
                 with col_table:
                     st.subheader("📋 Résultats de la recherche")
-                    # Afficher le tableau des résultats
-                    display_cols = [col for col in result.columns if col in ['Nom poste', 'Nom_du_pos', 'Identifian', 'Tension_d', 'latitude', 'longitude']]
-                    st.dataframe(result[display_cols], use_container_width=True)
+                    # Afficher le tableau des résultats avec sélection de lignes
+                    display_cols = [col for col in result.columns if col in ['Nom_du_pos', 'Identifian', 'Tension_d', 'latitude', 'longitude']]
+                    result_for_editor = result[display_cols].copy()
+                    result_for_editor["_selected"] = False
+                    if len(result_for_editor) > 0:
+                        result_for_editor.loc[result_for_editor.index[:2], "_selected"] = True
+                    selected_result = st.data_editor(
+                        result_for_editor,
+                        use_container_width=True,
+                        num_rows="dynamic",
+                        column_config={"_selected": st.column_config.CheckboxColumn("Sélectionner")}
+                    )
+                    # Filtrer pour ne garder que les lignes sélectionnées
+                    filtered_result = selected_result[selected_result["_selected"] == True].drop(columns=["_selected"])
 
-                    # Afficher les liens Google Maps et Waze pour chaque résultat
+                    # Afficher les liens Google Maps et Waze pour chaque résultat sélectionné
                     st.subheader("🗺️ Liens de navigation")
-                    for idx, row in result.iterrows():
+                    for idx, row in filtered_result.iterrows():
                         if 'latitude' in row and 'longitude' in row and pd.notna(row['latitude']) and pd.notna(row['longitude']):
                             lat_str = str(row['latitude'])
                             lon_str = str(row['longitude'])
@@ -796,13 +826,12 @@ if check_password():
                             waze_url = f"https://waze.com/ul?ll={lat_str}%2C{lon_str}&navigate=yes"
                             poste_name = row.get('Nom poste', row.get('Nom_du_pos', 'Poste inconnu'))
                             st.markdown(f"📍 **{poste_name}** : [🗺️ Google Maps]({google_url}) | [🚗 Waze]({waze_url})")
-                            
 
                     # Afficher les informations GMR et GDP regroupées
                     st.subheader("🏢 Informations GMR et GDP :")
                     gmr_postes = {}
                     gdp_postes = {}
-                    for idx, row in result.iterrows():
+                    for idx, row in filtered_result.iterrows():
                         if 'latitude' in row and 'longitude' in row and pd.notna(row['latitude']) and pd.notna(row['longitude']):
                             # Informations GMR
                             gmr_info = find_gmr_for_poste(row['latitude'], row['longitude'], gmr_df)
@@ -821,39 +850,40 @@ if check_password():
                                     gdp_postes[gdp_key] = []
                                 gdp_postes[gdp_key].append(poste_name)
                     # Afficher les GMR
-                    if gmr_postes:
-                        st.markdown("### 🔵 Groupements de Maintenance Régionale (GMR)")
-                        for gmr_key, postes in gmr_postes.items():
-                            gmr_alias, gmr_code, gmr_siege = gmr_key
-                            st.info(f"📍 {', '.join(postes)}")
-                            st.write(f"• **GMR :** {gmr_alias}")
-                            st.write(f"• **Code GMR :** {gmr_code}")
-                            st.write(f"• **Siège :** {gmr_siege}")
+                    if filtered_result.empty:
+                        st.warning("Aucun poste sélectionné dans le tableau. Veuillez sélectionner au moins une ligne.")
                     else:
-                        st.warning("Aucun GMR identifié pour les postes trouvés.")
-                    # Afficher les GDP
-                    if gdp_postes:
-                        st.markdown("### 🟢 Groupements De Poste (GDP)")
-                        for gdp_key, postes in gdp_postes.items():
-                            gdp_poste, gdp_code, gdp_centre, gdp_siege = gdp_key
-                            st.success(f"📍 {', '.join(postes)}")
-                            st.write(f"• **GDP :** {gdp_poste}")
-                            st.write(f"• **Code GDP :** {gdp_code}")
-                            st.write(f"• **Centre :** {gdp_centre}")
-                            st.write(f"• **Siège :** {gdp_siege}")
-                    else:
-                        st.warning("Aucun GDP identifié pour les postes trouvés.")
-                
+                        if not gmr_postes:
+                            st.warning("Aucun GMR identifié pour les postes sélectionnés.")
+                        else:
+                            st.markdown("### 🔵 Groupements de Maintenance Régionale (GMR)")
+                            for gmr_key, postes in gmr_postes.items():
+                                gmr_alias, gmr_code, gmr_siege = gmr_key
+                                st.info(f"📍 {', '.join(postes)}")
+                                st.write(f"• **GMR :** {gmr_alias}")
+                                st.write(f"• **Code GMR :** {gmr_code}")
+                                st.write(f"• **Siège :** {gmr_siege}")
+                        # Afficher les GDP
+                        if not gdp_postes:
+                            st.warning("Aucun GDP identifié pour les postes sélectionnés.")
+                        else:
+                            st.markdown("### 🟢 Groupements De Poste (GDP)")
+                            for gdp_key, postes in gdp_postes.items():
+                                gdp_poste, gdp_code, gdp_centre, gdp_siege = gdp_key
+                                st.success(f"📍 {', '.join(postes)}")
+                                st.write(f"• **GDP :** {gdp_poste}")
+                                st.write(f"• **Code GDP :** {gdp_code}")
+                                st.write(f"• **Centre :** {gdp_centre}")
+                                st.write(f"• **Siège :** {gdp_siege}")
+
                 with col_map:
                     st.subheader("🗺️ Carte des postes, GMR et GDP")
                     
                     with st.spinner("🗺️ Génération de la carte..."):
                         # Créer et afficher la carte
-                        map_obj = create_map_with_gmr_gdp(result, gmr_df, gdp_df, show_all_gmr, show_all_gdp)
-                        
+                        map_obj = create_map_with_gmr_gdp(filtered_result, gmr_df, gdp_df, show_all_gmr, show_all_gdp)
                         # Afficher la carte avec une clé unique pour éviter le re-rendu
-                        map_key = f"map_{hash(search_nom)}_{len(result)}_{show_all_gmr}_{show_all_gdp}"
-                        
+                        map_key = f"map_{hash(search_nom)}_{len(filtered_result)}_{show_all_gmr}_{show_all_gdp}"
                         st_folium(
                             map_obj, 
                             width=700, 
@@ -875,5 +905,5 @@ if check_password():
 
     # Texte de fin et remerciements
     st.markdown("<hr style='margin-top:40px;margin-bottom:10px;'>", unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center; color:gray;'>v0.4.0 - DB and APP by Guillaume B. 🍔</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; color:gray;'>v0.4.1 - DB and APP by Guillaume B. 🍔</div>", unsafe_allow_html=True)
     st.markdown("<div style='text-align:center; color:gray;'>Special thanks to PascaL B. , Kévin G. and Hervé G.</div>", unsafe_allow_html=True)
