@@ -4,27 +4,27 @@ import folium
 from streamlit_folium import st_folium
 from datetime import datetime
 # --- Modularized imports ---
-from src.parsers import (
+from parsers import (
     parse_postes_kml_optimized,
     parse_gmr_kml_optimized,
     parse_gdp_kml_optimized,
     parse_postes_kml,
     parse_gmr_kml
 )
-from src.map_utils import (
+from map_utils import (
     point_in_polygon,
     create_map_with_gmr_gdp,
     find_gmr_for_poste,
     find_gdp_for_poste
 )
-from src.auth import (
+from auth import (
     hash_password,
     verify_password,
     authenticate_user,
     check_password,
     init_mongodb
 )
-from src.config import get_mongodb_url
+from config import get_mongodb_url
 
 # Cache pour les données KML
 @st.cache_data(ttl=3600)  # Cache pendant 1 heure
