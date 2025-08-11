@@ -315,12 +315,7 @@ def parse_gdp_kml_optimized(high_precision=False):
                     
                     if high_precision:
                         # Mode haute précision : garder beaucoup plus de points
-                        if len(coords_list) <= 200:
                             step = 1  # Tous les points
-                        elif len(coords_list) <= 1000:
-                            step = max(1, len(coords_list) // 500)  # Jusqu'à 500 points
-                        else:
-                            step = max(1, len(coords_list) // 800)  # Jusqu'à 800 points
                     else:
                         # Mode optimisé : simplification adaptative
                         if len(coords_list) <= 100:
@@ -725,25 +720,35 @@ if check_password():
 
     # Options de performance (disponibles avant le chargement)
     with st.expander("⚙️ Options de performance", expanded=False):
-        high_precision = st.checkbox("🎯 Précision maximale des polygones GMR (plus lent au chargement)", value=False)
-        st.info("💡 La précision maximale améliore les contours des GMR mais augmente le temps de chargement initial.")
+        high_precision_gmr = st.checkbox("🔵 Précision maximale des polygones GMR (plus lent au chargement)", value=False)
+        high_precision_gdp = st.checkbox("🟢 Précision maximale des polygones GDP (plus lent au chargement)", value=False)
+        st.info("💡 La précision maximale améliore les contours des GMR et GDP mais augmente drastiquement le temps de chargement initial.")
 
     # Charger les données KML avec cache et indicateur de progression
-    cache_key = f"data_loaded_{high_precision}"
+    cache_key = f"data_loaded_{high_precision_gmr}_{high_precision_gdp}"
     if cache_key not in st.session_state:
         with st.spinner("🔄 Chargement initial des données (mis en cache pour les prochaines utilisations)..."):
-            postes_df, gmr_df, gdp_df = load_and_cache_kml_data(high_precision)
+            postes_df = parse_postes_kml_optimized()
+            gmr_df = parse_gmr_kml_optimized(high_precision_gmr)
+            gdp_df = parse_gdp_kml_optimized(high_precision_gdp)
             st.session_state[cache_key] = True
-            st.session_state['current_precision'] = high_precision
+            st.session_state['current_precision_gmr'] = high_precision_gmr
+            st.session_state['current_precision_gdp'] = high_precision_gdp
     else:
         # Vérifier si la précision a changé
-        if st.session_state.get('current_precision', False) != high_precision:
+        if (st.session_state.get('current_precision_gmr', False) != high_precision_gmr or
+            st.session_state.get('current_precision_gdp', False) != high_precision_gdp):
             with st.spinner("🔄 Rechargement avec nouvelle précision..."):
-                postes_df, gmr_df, gdp_df = load_and_cache_kml_data(high_precision)
-                st.session_state['current_precision'] = high_precision
+                postes_df = parse_postes_kml_optimized()
+                gmr_df = parse_gmr_kml_optimized(high_precision_gmr)
+                gdp_df = parse_gdp_kml_optimized(high_precision_gdp)
+                st.session_state['current_precision_gmr'] = high_precision_gmr
+                st.session_state['current_precision_gdp'] = high_precision_gdp
         else:
             # Chargement rapide depuis le cache
-            postes_df, gmr_df, gdp_df = load_and_cache_kml_data(high_precision)
+            postes_df = parse_postes_kml_optimized()
+            gmr_df = parse_gmr_kml_optimized(high_precision_gmr)
+            gdp_df = parse_gdp_kml_optimized(high_precision_gdp)
     
     if postes_df.empty:
         st.error("❌ Impossible de charger les données des postes depuis le fichier KML")
