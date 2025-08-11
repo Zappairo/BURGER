@@ -77,20 +77,26 @@ def create_map_with_gmr_gdp(postes_result, gmr_df, gdp_df, show_all_gmr=False, s
                             break  # Un poste ne peut être que dans un GDP
         gdp_to_show = gdp_df.loc[list(relevant_gdp_indices)] if relevant_gdp_indices else pd.DataFrame()
 
-    # Ajouter les polygones GMR avec optimisations
+    # Ajouter les polygones GMR avec popups améliorés
     for idx, gmr in gmr_to_show.iterrows():
         if 'coordinates' in gmr and gmr['coordinates'] and len(gmr['coordinates']) > 2:
             popup_text = f"""
-            <div style="font-family: Arial; max-width: 250px;">
-                <h4 style="color: #1f4e79; margin: 0;">🔵 GMR</h4>
-                <p><strong>Nom:</strong> {gmr.get('GMR_alias', 'N/A')}</p>
-                <p><strong>Code:</strong> {gmr.get('GMR', 'N/A')}</p>
-                <p><strong>Siège:</strong> {gmr.get('Siège_du_', 'N/A')}</p>
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; max-width: 280px; padding: 10px; line-height: 1.4; background-color: white; border-radius: 5px;">
+                <div style="color: #1f4e79; font-weight: bold; font-size: 15px; margin-bottom: 8px; border-bottom: 2px solid #1f4e79; padding-bottom: 4px;">
+                    &#x1F535; GMR
+                </div>
+                <div style="color: #333;">
+                    <div style="font-weight: bold; margin-bottom: 2px;">{gmr.get('GMR_alias', 'N/A')}</div>
+                    <div style="color: #666; font-size: 12px;">
+                        <span style="font-weight: 600;">Code:</span> {gmr.get('GMR', 'N/A')}<br>
+                        <span style="font-weight: 600;">Siège:</span> {gmr.get('Siège_du_', 'N/A')}
+                    </div>
+                </div>
             </div>
             """
             folium.Polygon(
                 locations=gmr['coordinates'],
-                popup=folium.Popup(popup_text, max_width=300),
+                popup=folium.Popup(popup_text, max_width=320),
                 color='blue',
                 weight=2,
                 fillColor='lightblue',
@@ -98,21 +104,27 @@ def create_map_with_gmr_gdp(postes_result, gmr_df, gdp_df, show_all_gmr=False, s
                 tooltip=f"GMR: {gmr.get('GMR_alias', 'N/A')}"
             ).add_to(m)
 
-    # Ajouter les polygones GDP avec optimisations
+    # Ajouter les polygones GDP avec popups améliorés
     for idx, gdp in gdp_to_show.iterrows():
         if 'coordinates' in gdp and gdp['coordinates'] and len(gdp['coordinates']) > 2:
             popup_text = f"""
-            <div style="font-family: Arial; max-width: 250px;">
-                <h4 style="color: #2d5016; margin: 0;">🟢 GDP</h4>
-                <p><strong>Poste:</strong> {gdp.get('Poste', 'N/A')}</p>
-                <p><strong>Code:</strong> {gdp.get('Code', 'N/A')}</p>
-                <p><strong>Centre:</strong> {gdp.get('Nom_du_cen', 'N/A')}</p>
-                <p><strong>GMR:</strong> {gdp.get('GMR', 'N/A')}</p>
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; max-width: 280px; padding: 10px; line-height: 1.4; background-color: white; border-radius: 5px;">
+                <div style="color: #2d5016; font-weight: bold; font-size: 15px; margin-bottom: 8px; border-bottom: 2px solid #2d5016; padding-bottom: 4px;">
+                    &#x1F7E2; GDP
+                </div>
+                <div style="color: #333;">
+                    <div style="font-weight: bold; margin-bottom: 2px;">{gdp.get('Poste', 'N/A')}</div>
+                    <div style="color: #666; font-size: 12px;">
+                        <span style="font-weight: 600;">Code:</span> {gdp.get('Code', 'N/A')}<br>
+                        <span style="font-weight: 600;">Centre:</span> {gdp.get('Nom_du_cen', 'N/A')}<br>
+                        <span style="font-weight: 600;">GMR:</span> {gdp.get('GMR', 'N/A')}
+                    </div>
+                </div>
             </div>
             """
             folium.Polygon(
                 locations=gdp['coordinates'],
-                popup=folium.Popup(popup_text, max_width=300),
+                popup=folium.Popup(popup_text, max_width=320),
                 color='green',
                 weight=2,
                 fillColor='lightgreen',
@@ -132,39 +144,52 @@ def create_map_with_gmr_gdp(postes_result, gmr_df, gdp_df, show_all_gmr=False, s
             gmr_info = find_gmr_for_poste(lat, lon, gmr_df)
             gdp_info = find_gdp_for_poste(lat, lon, gdp_df)
             
-            # Construction du popup compact et optimisé
+            # Construction du popup compatible cloud avec styles inline robustes
             popup_content = f"""
-            <div style="font-family: Arial, sans-serif; font-size: 12px; max-width: 250px; padding: 8px;">
-                <h4 style="color: #d73027; margin: 0 0 8px 0; font-size: 14px;">🔴 {poste.get('Nom_du_pos', 'N/A')}</h4>
-                <div style="margin-bottom: 6px;">
-                    <strong>ID:</strong> {poste.get('Identifian', 'N/A')}<br>
-                    <strong>Tension:</strong> {poste.get('Tension_d', 'N/A')}<br>
-                    <strong>Coord:</strong> {lat:.4f}, {lon:.4f}
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; max-width: 280px; padding: 10px; line-height: 1.4; background-color: white; border-radius: 5px;">
+                <div style="color: #d73027; font-weight: bold; font-size: 15px; margin-bottom: 8px; border-bottom: 2px solid #d73027; padding-bottom: 4px;">
+                    &#x1F534; POSTE RTE
+                </div>
+                <div style="margin-bottom: 8px;">
+                    <div style="font-weight: bold; color: #333; margin-bottom: 2px;">{poste.get('Nom_du_pos', 'N/A')}</div>
+                    <div style="color: #666; font-size: 12px;">
+                        <span style="font-weight: 600;">ID:</span> {poste.get('Identifian', 'N/A')}<br>
+                        <span style="font-weight: 600;">Tension:</span> {poste.get('Tension_d', 'N/A')}<br>
+                        <span style="font-weight: 600;">Coordonnées:</span> {lat:.4f}, {lon:.4f}
+                    </div>
                 </div>
             """
             
             if gmr_info is not None:
                 popup_content += f"""
-                <div style="border-top: 1px solid #ddd; padding-top: 6px; margin-bottom: 6px;">
-                    <strong style="color: #1f4e79;">🔵 GMR:</strong> {gmr_info.get('GMR_alias', 'N/A')}<br>
-                    <strong>Siège:</strong> {gmr_info.get('Siège_du_', 'N/A')}
+                <div style="border-top: 1px solid #e0e0e0; padding-top: 8px; margin-bottom: 8px;">
+                    <div style="color: #1f4e79; font-weight: bold; font-size: 13px; margin-bottom: 3px;">
+                        &#x1F535; GMR - {gmr_info.get('GMR_alias', 'N/A')}
+                    </div>
+                    <div style="color: #666; font-size: 12px;">
+                        <span style="font-weight: 600;">Siège:</span> {gmr_info.get('Siège_du_', 'N/A')}
+                    </div>
                 </div>
                 """
             
             if gdp_info is not None:
                 popup_content += f"""
-                <div style="border-top: 1px solid #ddd; padding-top: 6px;">
-                    <strong style="color: #2d5016;">🟢 GDP:</strong> {gdp_info.get('Poste', 'N/A')}<br>
-                    <strong>Centre:</strong> {gdp_info.get('Nom_du_cen', 'N/A')}
+                <div style="border-top: 1px solid #e0e0e0; padding-top: 8px;">
+                    <div style="color: #2d5016; font-weight: bold; font-size: 13px; margin-bottom: 3px;">
+                        &#x1F7E2; GDP - {gdp_info.get('Poste', 'N/A')}
+                    </div>
+                    <div style="color: #666; font-size: 12px;">
+                        <span style="font-weight: 600;">Centre:</span> {gdp_info.get('Nom_du_cen', 'N/A')}
+                    </div>
                 </div>
                 """
             
             popup_content += "</div>"
             
-            # Marqueur optimisé avec popup compact
+            # Marqueur optimisé avec popup cohérent
             folium.Marker(
                 location=[lat, lon],
-                popup=folium.Popup(popup_content, max_width=280),
+                popup=folium.Popup(popup_content, max_width=320),
                 tooltip=f"Poste: {poste.get('Nom_du_pos', 'N/A')}",
                 icon=folium.Icon(
                     color='red', 
