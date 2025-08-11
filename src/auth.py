@@ -4,7 +4,7 @@ Authentification utilisateur (MongoDB, bcrypt)
 import bcrypt
 import pymongo
 import streamlit as st
-from src.config import get_mongodb_url
+from .config import get_mongodb_url
 
 def hash_password(password):
     """Hashe un mot de passe avec bcrypt"""

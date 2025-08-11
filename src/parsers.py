@@ -2,7 +2,7 @@
 Parsers KML pour postes, GMR et GDP
 """
 import os
-from src.config import get_kml_path, get_cache_path
+from .config import get_kml_path, get_cache_path
 import pickle
 import xml.etree.ElementTree as ET
 import pandas as pd
