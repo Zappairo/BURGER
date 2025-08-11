@@ -9,6 +9,7 @@ mongodb_config.py
 
 # Fichiers Python
 __pycache__/
+*.pkl
 *.py[cod]
 *$py.class
 *.so
