@@ -28,7 +28,8 @@ from src.auth import (
 from src.config import get_mongodb_url
 from src.performance_config import (
     CACHE_TTL_DATA, CACHE_TTL_SEARCH, MIN_SEARCH_LENGTH, 
-    MAX_SEARCH_RESULTS, AUTO_SELECT_COUNT, DISPLAY_COLUMNS, HELP_MESSAGES
+    MAX_SEARCH_RESULTS, AUTO_SELECT_COUNT, DISPLAY_COLUMNS, HELP_MESSAGES,
+    MAP_RETURN_ON_HOVER, MAP_RETURNED_OBJECTS, MAP_USE_CONTAINER_WIDTH
 )
 
 # Configuration de la page doit être la première commande Streamlit
@@ -186,7 +187,7 @@ if check_password():
             placeholder=HELP_MESSAGES['search_placeholder']
         )
 
-        # Options d'affichage avec session state
+        # Options d'affichage avec session state stable
         if 'show_gmr' not in st.session_state:
             st.session_state.show_gmr = False
         if 'show_gdp' not in st.session_state:
@@ -194,22 +195,24 @@ if check_password():
             
         col_gmr, col_gdp = st.columns(2)
         with col_gmr:
-            show_all_gmr = st.checkbox(
+            new_show_gmr = st.checkbox(
                 "🔵 Afficher tous les GMR", 
                 value=st.session_state.show_gmr,
                 key="show_gmr_checkbox"
             )
-            if show_all_gmr != st.session_state.show_gmr:
-                st.session_state.show_gmr = show_all_gmr
+            # Mise à jour silencieuse du session state
+            st.session_state.show_gmr = new_show_gmr
+            show_all_gmr = st.session_state.show_gmr
                 
         with col_gdp:
-            show_all_gdp = st.checkbox(
+            new_show_gdp = st.checkbox(
                 "🟢 Afficher tous les GDP", 
                 value=st.session_state.show_gdp,
                 key="show_gdp_checkbox"
             )
-            if show_all_gdp != st.session_state.show_gdp:
-                st.session_state.show_gdp = show_all_gdp
+            # Mise à jour silencieuse du session state
+            st.session_state.show_gdp = new_show_gdp
+            show_all_gdp = st.session_state.show_gdp
 
     # Traitement de la recherche avec optimisations
     if search_nom and len(search_nom.strip()) >= MIN_SEARCH_LENGTH:
@@ -324,19 +327,24 @@ if check_password():
                     if not filtered_result.empty:
                         st.subheader("🗺️ Carte interactive")
                         
-                        # Création optimisée de la carte avec cache
-                        map_cache_key = f"map_{hash(str(filtered_result.index.tolist()))}_{show_all_gmr}_{show_all_gdp}_{st.session_state.precision_gmr}_{st.session_state.precision_gdp}"
+                        # Création optimisée de la carte avec cache stable
+                        # Utiliser un hash du contenu pour éviter les regenerations intempestives
+                        postes_hash = hash(tuple(sorted(filtered_result.index.tolist())))
+                        options_hash = hash((show_all_gmr, show_all_gdp, st.session_state.precision_gmr, st.session_state.precision_gdp))
+                        map_cache_key = f"stable_map_{postes_hash}_{options_hash}"
                         
                         with st.spinner("🗺️ Génération de la carte..."):
                             map_obj = create_map_with_gmr_gdp(filtered_result, gmr_df, gdp_df, show_all_gmr, show_all_gdp)
                             
-                            # Affichage de la carte avec clé stable
-                            st_folium(
+                            # Affichage de la carte avec configuration anti-reload
+                            map_data = st_folium(
                                 map_obj, 
                                 width=700, 
                                 height=500,
                                 key=map_cache_key,
-                                returned_objects=["last_object_clicked"]  # Optimisation - ne retourner que les clics
+                                returned_objects=MAP_RETURNED_OBJECTS,  # Configuration anti-reload
+                                return_on_hover=MAP_RETURN_ON_HOVER,  # Désactiver les événements de survol
+                                use_container_width=MAP_USE_CONTAINER_WIDTH  # Largeur fixe pour stabilité
                             )
                         
                         # Légende
@@ -362,5 +370,5 @@ if check_password():
 
     # Texte de fin et remerciements
     st.markdown("<hr style='margin-top:40px;margin-bottom:10px;'>", unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center; color:gray;'>v1.0.1 - DB and APP by Guillaume B. 🍔</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; color:gray;'>v1.0.2 - DB and APP by Guillaume B. 🍔</div>", unsafe_allow_html=True)
     st.markdown("<div style='text-align:center; color:gray;'>Special thanks to PascaL B. , Kévin G. and Hervé G.</div>", unsafe_allow_html=True)

@@ -17,6 +17,11 @@ MAP_DEFAULT_ZOOM = 6
 MAP_SINGLE_POSTE_ZOOM = 10
 MAP_CANVAS_OPTIMIZATION = True  # Utiliser prefer_canvas pour de meilleures performances
 
+# Paramètres anti-reload pour st_folium
+MAP_RETURN_ON_HOVER = False  # Désactiver les événements de survol
+MAP_RETURNED_OBJECTS = []  # Ne retourner aucun objet pour éviter les reloads
+MAP_USE_CONTAINER_WIDTH = False  # Largeur fixe pour plus de stabilité
+
 # Paramètres de polygones
 POLYGON_SIMPLIFICATION_STEPS = {
     'low': {'small': 1, 'medium': 2, 'large': 4, 'huge': 8},
@@ -39,7 +44,7 @@ TABLE_MAX_WIDTH = None  # Use container width
 
 # Messages d'aide
 HELP_MESSAGES = {
-    'search_placeholder': "Ex: Marmande, Bordeaux...",
+    'search_placeholder': "Ex: Marmande, Soullans...",
     'search_min_chars': "💡 Veuillez saisir au moins 2 caractères pour lancer la recherche.",
     'search_no_input': "🔍 Saisissez le nom d'un poste pour commencer la recherche.",
     'too_many_results': "⚠️ {} résultats trouvés. Seuls les {} premiers sont affichés. Précisez votre recherche.",

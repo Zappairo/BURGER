@@ -36,16 +36,21 @@ def point_in_polygon(point_lat, point_lon, polygon_coords):
     except Exception:
         return False
 
-@st.cache_data(ttl=CACHE_TTL_SEARCH)
+@st.cache_data(ttl=CACHE_TTL_SEARCH, show_spinner=False)
 def create_map_with_gmr_gdp(postes_result, gmr_df, gdp_df, show_all_gmr=False, show_all_gdp=False):
-    """Crée une carte Folium optimisée avec postes, GMR et GDP"""
+    """Crée une carte Folium optimisée avec postes, GMR et GDP - Version stable anti-reload"""
     
-    # Créer la carte centrée sur la France
+    # Créer la carte centrée sur la France avec options de stabilité
     m = folium.Map(
         location=[46.603354, 1.888334], 
         zoom_start=MAP_DEFAULT_ZOOM,
         tiles='OpenStreetMap',
-        prefer_canvas=True  # Optimisation pour de nombreux éléments
+        prefer_canvas=True,  # Optimisation pour de nombreux éléments
+        # Options pour réduire les interactions problématiques
+        zoom_control=True,
+        scrollWheelZoom=True,
+        doubleClickZoom=True,
+        dragging=True
     )
     
     # Optimisation : déterminer les polygones à afficher en fonction des options
@@ -96,12 +101,12 @@ def create_map_with_gmr_gdp(postes_result, gmr_df, gdp_df, show_all_gmr=False, s
             """
             folium.Polygon(
                 locations=gmr['coordinates'],
-                popup=folium.Popup(popup_text, max_width=320),
+                popup=folium.Popup(popup_text, max_width=320, parse_html=False),
                 color='blue',
                 weight=2,
                 fillColor='lightblue',
                 fillOpacity=0.3,
-                tooltip=f"GMR: {gmr.get('GMR_alias', 'N/A')}"
+                tooltip=folium.Tooltip(f"GMR: {gmr.get('GMR_alias', 'N/A')}", sticky=False)
             ).add_to(m)
 
     # Ajouter les polygones GDP avec popups améliorés
@@ -124,12 +129,12 @@ def create_map_with_gmr_gdp(postes_result, gmr_df, gdp_df, show_all_gmr=False, s
             """
             folium.Polygon(
                 locations=gdp['coordinates'],
-                popup=folium.Popup(popup_text, max_width=320),
+                popup=folium.Popup(popup_text, max_width=320, parse_html=False),
                 color='green',
                 weight=2,
                 fillColor='lightgreen',
                 fillOpacity=0.2,
-                tooltip=f"GDP: {gdp.get('Poste', 'N/A')}"
+                tooltip=folium.Tooltip(f"GDP: {gdp.get('Poste', 'N/A')}", sticky=False)
             ).add_to(m)
 
     # Ajouter les marqueurs de postes avec informations optimisées
@@ -186,11 +191,11 @@ def create_map_with_gmr_gdp(postes_result, gmr_df, gdp_df, show_all_gmr=False, s
             
             popup_content += "</div>"
             
-            # Marqueur optimisé avec popup cohérent
+            # Marqueur optimisé avec événements contrôlés
             folium.Marker(
                 location=[lat, lon],
-                popup=folium.Popup(popup_content, max_width=320),
-                tooltip=f"Poste: {poste.get('Nom_du_pos', 'N/A')}",
+                popup=folium.Popup(popup_content, max_width=320, parse_html=False),
+                tooltip=folium.Tooltip(f"Poste: {poste.get('Nom_du_pos', 'N/A')}", sticky=False),
                 icon=folium.Icon(
                     color='red', 
                     icon='bolt',
