@@ -106,7 +106,7 @@ if check_password():
     # Header avec info utilisateur et déconnexion
     col1, col2, col3 = st.columns([6, 1, 1])
     with col1:
-        st.title("BURGER 🍔 : Base Unifiée de Référencement des Grands Equipements RTE")
+        st.title("BURGER 🍔 : Base Unifiée de Référencement Géoréférencé des Édifices RTE")
     with col3:
         st.markdown(f"👤 Connecté : **{st.session_state['current_user']}**")
         if st.button("🚪 Se déconnecter"):
@@ -127,13 +127,13 @@ if check_password():
         col_gmr_prec, col_gdp_prec = st.columns(2)
         with col_gmr_prec:
             new_precision_gmr = st.checkbox(
-                "🔵 Précision maximale des polygones GMR", 
+                "🔵 Précision maximale des polygones GMR (très longue latence)", 
                 value=st.session_state.precision_gmr,
                 key="precision_gmr_checkbox"
             )
         with col_gdp_prec:
             new_precision_gdp = st.checkbox(
-                "🟢 Précision maximale des polygones GDP", 
+                "🟢 Précision maximale des polygones GDP (très longue latence)", 
                 value=st.session_state.precision_gdp,
                 key="precision_gdp_checkbox"
             )
@@ -352,7 +352,7 @@ if check_password():
                         **Légende :**
                         - 🔴 **Marqueurs rouges** : Postes sélectionnés
                         - 🔵 **Zones bleues** : GMR (Groupements de Maintenance Régionale)
-                        - 🟢 **Zones vertes** : GDP (Groupements De Poste)
+                        - 🟢 **Zones vertes** : GDP (Groupements De Postes)
                         """)
                     else:
                         st.info("🗺️ Sélectionnez des postes dans le tableau pour afficher la carte.")
@@ -370,5 +370,5 @@ if check_password():
 
     # Texte de fin et remerciements
     st.markdown("<hr style='margin-top:40px;margin-bottom:10px;'>", unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center; color:gray;'>v1.0.2 - DB and APP by Guillaume B. 🍔</div>", unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center; color:gray;'>Special thanks to PascaL B. , Kévin G. and Hervé G.</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; color:gray;'>v1.0.3 - DB and APP by Guillaume B. 🍔</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; color:gray;'>Special thanks to Pascal B. , Kévin G. and Hervé G.</div>", unsafe_allow_html=True)
