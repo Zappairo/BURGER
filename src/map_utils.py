@@ -121,7 +121,7 @@ def create_map_with_gmr_gdp(postes_result, gmr_df, gdp_df, show_all_gmr=False, s
                     <div style="font-weight: bold; margin-bottom: 2px;">{gdp.get('Poste', 'N/A')}</div>
                     <div style="color: #666; font-size: 12px;">
                         <span style="font-weight: 600;">Code:</span> {gdp.get('Code', 'N/A')}<br>
-                        <span style="font-weight: 600;">Centre:</span> {gdp.get('Nom_du_cen', 'N/A')}<br>
+                        <span style="font-weight: 600;">DI:</span> {gdp.get('Nom_du_cen', 'N/A')}<br>
                         <span style="font-weight: 600;">GMR:</span> {gdp.get('GMR', 'N/A')}
                     </div>
                 </div>
@@ -148,8 +148,8 @@ def create_map_with_gmr_gdp(postes_result, gmr_df, gdp_df, show_all_gmr=False, s
             # Informations contextuelles optimisées
             gmr_info = find_gmr_for_poste(lat, lon, gmr_df)
             gdp_info = find_gdp_for_poste(lat, lon, gdp_df)
-            
-            # Construction du popup compatible cloud avec styles inline robustes
+
+            # Construction du popup compatible en hébergement cloud avec styles inline robustes
             popup_content = f"""
             <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; max-width: 280px; padding: 10px; line-height: 1.4; background-color: white; border-radius: 5px;">
                 <div style="color: #d73027; font-weight: bold; font-size: 15px; margin-bottom: 8px; border-bottom: 2px solid #d73027; padding-bottom: 4px;">
@@ -184,7 +184,7 @@ def create_map_with_gmr_gdp(postes_result, gmr_df, gdp_df, show_all_gmr=False, s
                         &#x1F7E2; GDP - {gdp_info.get('Poste', 'N/A')}
                     </div>
                     <div style="color: #666; font-size: 12px;">
-                        <span style="font-weight: 600;">Centre:</span> {gdp_info.get('Nom_du_cen', 'N/A')}
+                        <span style="font-weight: 600;">DI:</span> {gdp_info.get('Nom_du_cen', 'N/A')}
                     </div>
                 </div>
                 """
