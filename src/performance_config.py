@@ -3,9 +3,9 @@ Configuration des paramètres de performance pour l'application BURGER
 """
 
 # Paramètres de cache
-CACHE_TTL_DATA = 3600  # 1 heure pour les données KML
-CACHE_TTL_SEARCH = 1800  # 30 minutes pour les recherches
-CACHE_TTL_MAP = 1800  # 30 minutes pour les cartes
+CACHE_TTL_DATA = 300  # 5 minutes pour les données KML
+CACHE_TTL_SEARCH = 180  # 3 minutes pour les recherches
+CACHE_TTL_MAP = 180  # 3 minutes pour les cartes
 
 # Paramètres de recherche
 MIN_SEARCH_LENGTH = 2  # Minimum de caractères pour déclencher une recherche
