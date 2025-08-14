@@ -220,9 +220,8 @@ if check_password():
                     if gdp_info is not None:
                         gdp_name = gdp_info.get('Poste', 'N/A')
                         gdp_centre = gdp_info.get('Nom_du_cen', 'N/A')
-                        gdp_code = gdp_info.get('Code', 'N/A')
                         html += f"""
-                            <br><strong>GDP : {gdp_name}</strong>
+                            <br>GDP : {gdp_name}
                             <br>Di : {gdp_centre}
                         """
                     
