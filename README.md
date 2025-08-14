@@ -6,7 +6,7 @@
 - Recherche optimisée de postes RTE par nom (cache, tolérance orthographique)
 - Visualisation cartographique interactive (Folium, KML, polygones GMR/GDP)
 - Affichage détaillé des postes, zones des GMR et GDP avec popups enrichis
-- Gestion intelligente du cache pour accélérer les recherches et l'affichage
+- Gestion intelligente du cache pour accélérer les recherches et l'affichage de la carte
 
 ## 🚀 Installation
 
