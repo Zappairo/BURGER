@@ -4,7 +4,7 @@ import folium
 import pymongo
 from streamlit_folium import st_folium
 from datetime import datetime
-# --- Modularized imports ---
+# --- Tout les imports de src ---
 from src.parsers import (
     parse_postes_kml_optimized,
     parse_gmr_kml_optimized,
@@ -32,10 +32,10 @@ from src.performance_config import (
     MAP_RETURN_ON_HOVER, MAP_RETURNED_OBJECTS, MAP_USE_CONTAINER_WIDTH
 )
 
-# Configuration de la page doit être la première commande Streamlit
+# Configuration de la page 
 st.set_page_config(layout="wide", page_icon="🍔", page_title="BURGER - Recherche Postes RTE")
 
-# Cache global pour les données KML - évite les rechargements intempestifs
+# Cache global pour les données KML
 @st.cache_data(ttl=CACHE_TTL_DATA, show_spinner="🔄 Chargement initial des données...")
 def load_postes_data():
     """Charge et met en cache les données des postes"""
@@ -77,7 +77,7 @@ def prepare_search_data(postes_df):
 
 @st.cache_data(ttl=CACHE_TTL_SEARCH)
 def search_postes(search_df, search_nom):
-    """Effectue la recherche de postes de manière optimisée"""
+    # Effectue la recherche de postes
     import re
     import unicodedata
     
@@ -110,19 +110,19 @@ if check_password():
     with col3:
         st.markdown(f"👤 Connecté : **{st.session_state['current_user']}**")
         if st.button("🚪 Se déconnecter"):
-            # Vider le cache utilisateur pour forcer la reconnexion
+            # Vider le cache utilisateur pour forcer une reconnexion suite à une déconnexion
             for key in list(st.session_state.keys()):
                 if key.startswith(('password', 'current_user', 'precision_')):
                     del st.session_state[key]
             st.rerun()
 
-    # Initialisation des variables de session pour éviter les rechargements
+    # Initialisation des variables de session
     if 'precision_gmr' not in st.session_state:
         st.session_state.precision_gmr = False
     if 'precision_gdp' not in st.session_state:
         st.session_state.precision_gdp = False
 
-    # Options de performance avec session state pour éviter les rechargements
+    # Options de performance avec session state pour affiner une recherche avec les polygones exacts des KML
     with st.expander("⚙️ Options de performance", expanded=False):
         col_gmr_prec, col_gdp_prec = st.columns(2)
         with col_gmr_prec:
@@ -151,7 +151,7 @@ if check_password():
             
             st.info(HELP_MESSAGES['precision_info'])
 
-    # Chargement optimisé des données avec gestion d'erreurs
+    # Chargement des données avec gestion d'erreurs
     try:
         # Chargement des postes (toujours nécessaire)
         postes_df = load_postes_data()
@@ -177,18 +177,18 @@ if check_password():
     elif gdp_df.empty:
         st.error("❌ Impossible de charger les données des GDP")
         st.stop()
-    # Interface de recherche optimisée
+    # Organisation de l'interface
     col1, col2, col3, col4, col5 = st.columns([1,2,3,2,1])
 
     with col3:
-        # Utilisation d'une clé unique pour éviter les rechargements intempestifs
+        # Fenêtre de recherche
         search_nom = st.text_input(
             "🔎 Entrez le nom du poste:", 
             key="search_input_main",
             placeholder=HELP_MESSAGES['search_placeholder']
         )
 
-        # Options d'affichage avec session state stable
+        # Options d'affichage du session state
         if 'show_gmr' not in st.session_state:
             st.session_state.show_gmr = False
         if 'show_gdp' not in st.session_state:
@@ -230,7 +230,7 @@ if check_password():
                 # Interface optimisée avec cache de l'état de sélection
                 result_key = f"result_{hash(search_nom)}_{len(result)}"
                 
-                # Créer deux colonnes : tableau et carte
+                # Création de deux colonnes : tableau et carte
                 col_table, col_map = st.columns([1, 1])
                 
                 with col_table:
@@ -240,12 +240,12 @@ if check_password():
                     result_for_editor = result[DISPLAY_COLUMNS].copy()
                     result_for_editor["Sélectionner"] = False
                     
-                    # Sélection automatique intelligente (premiers résultats)
+                    # Sélection automatique du premier résultat
                     auto_select_count = min(AUTO_SELECT_COUNT, len(result_for_editor))
                     if auto_select_count > 0:
                         result_for_editor.loc[result_for_editor.index[:auto_select_count], "Sélectionner"] = True
-                    
-                    # Éditeur de données avec optimisations
+
+                    # Affichage du tableau et changement du nom des colonnes
                     selected_result = st.data_editor(
                         result_for_editor,
                         use_container_width=True,
@@ -263,12 +263,12 @@ if check_password():
                         },
                         key=result_key
                     )
-                    
-                    # Filtrer pour ne garder que les lignes sélectionnées
+
+                    # Filtrer les lignes du tableau pour n'afficher que les lignes sélectionnées
                     filtered_result = selected_result[selected_result["Sélectionner"] == True].drop(columns=["Sélectionner"])
 
                     if not filtered_result.empty:
-                        # Optimisation des liens de navigation
+                        # Création des liens de navigation
                         st.subheader("🗺️ Liens de navigation")
                         for idx, row in filtered_result.iterrows():
                             if pd.notna(row.get('latitude')) and pd.notna(row.get('longitude')):
@@ -279,7 +279,7 @@ if check_password():
                                 poste_name = row.get('Nom_du_pos', 'Poste inconnu')
                                 st.markdown(f"📍 **{poste_name}** : [🗺️ Google Maps]({google_url}) | [🚗 Waze]({waze_url})")
                         
-                        # Informations GMR et GDP optimisées avec cache
+                        # Informations GMR et GDP avec cache
                         with st.expander("🏢 Informations GMR et GDP", expanded=True):
                             gmr_info_cache = {}
                             gdp_info_cache = {}
@@ -296,7 +296,7 @@ if check_password():
                                     if coord_key not in gdp_info_cache:
                                         gdp_info_cache[coord_key] = find_gdp_for_poste(row['latitude'], row['longitude'], gdp_df)
                             
-                            # Affichage optimisé des informations
+                            # Affichage des informations
                             unique_gmr = set()
                             unique_gdp = set()
                             
@@ -337,13 +337,13 @@ if check_password():
                         with st.spinner("🗺️ Génération de la carte..."):
                             map_obj = create_map_with_gmr_gdp(filtered_result, gmr_df, gdp_df, show_all_gmr, show_all_gdp)
                             
-                            # Affichage de la carte avec configuration anti-reload
+                            # Affichage de la carte avec configuration anti rechargement
                             map_data = st_folium(
                                 map_obj, 
                                 width=700, 
                                 height=500,
                                 key=map_cache_key,
-                                returned_objects=MAP_RETURNED_OBJECTS,  # Configuration anti-reload
+                                returned_objects=MAP_RETURNED_OBJECTS,  # Configuration anti rechargement (j'avais un soucis qui faisait que la carte se regenerait à chaque interaction avec la souris)
                                 return_on_hover=MAP_RETURN_ON_HOVER,  # Désactiver les événements de survol
                                 use_container_width=MAP_USE_CONTAINER_WIDTH  # Largeur fixe pour stabilité
                             )
@@ -371,5 +371,5 @@ if check_password():
 
     # Texte de fin et remerciements
     st.markdown("<hr style='margin-top:40px;margin-bottom:10px;'>", unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center; color:gray;'>v1.1.0 - DB and APP by Guillaume B. 🍔</div>", unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center; color:gray;'>Special thanks to Pascal B. , Kévin G. and Hervé G.</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; color:gray;'>v1.1.1 - DB et APP par Guillaume B. 🍔</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; color:gray;'>Remerciements chaleureux à Pascal B., Kévin G. et Hervé G.</div>", unsafe_allow_html=True)

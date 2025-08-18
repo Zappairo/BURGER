@@ -1,6 +1,6 @@
-"""
-Fonctions utilitaires pour la carte (folium, polygones, etc.) - Version optimisée
-"""
+# 
+# Fonctions utilitaires pour la carte (folium, polygones, etc.) - Version optimisée
+#
 import folium
 import pandas as pd
 import streamlit as st
@@ -57,7 +57,7 @@ def create_map_with_gmr_gdp(postes_result, gmr_df, gdp_df, show_all_gmr=False, s
     if show_all_gmr:
         gmr_to_show = gmr_df
     else:
-        # Ne montrer que les GMR pertinents pour les postes sélectionnés
+        # Ne montrer que son GMR aux postes sélectionnés
         relevant_gmr_indices = set()
         for idx, poste in postes_result.iterrows():
             if pd.notna(poste.get('latitude')) and pd.notna(poste.get('longitude')):
@@ -71,7 +71,7 @@ def create_map_with_gmr_gdp(postes_result, gmr_df, gdp_df, show_all_gmr=False, s
     if show_all_gdp:
         gdp_to_show = gdp_df
     else:
-        # Ne montrer que les GDP pertinents pour les postes sélectionnés
+        # Ne montrer que son GDP aux postes sélectionnés
         relevant_gdp_indices = set()
         for idx, poste in postes_result.iterrows():
             if pd.notna(poste.get('latitude')) and pd.notna(poste.get('longitude')):
@@ -149,7 +149,7 @@ def create_map_with_gmr_gdp(postes_result, gmr_df, gdp_df, show_all_gmr=False, s
             gmr_info = find_gmr_for_poste(lat, lon, gmr_df)
             gdp_info = find_gdp_for_poste(lat, lon, gdp_df)
 
-            # Construction du popup compatible en hébergement cloud avec styles inline robustes
+            # Construction du popup compatible en hébergement cloud streamlit avec styles
             popup_content = f"""
             <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 13px; max-width: 280px; padding: 10px; line-height: 1.4; background-color: white; border-radius: 5px;">
                 <div style="color: #d73027; font-weight: bold; font-size: 15px; margin-bottom: 8px; border-bottom: 2px solid #d73027; padding-bottom: 4px;">
@@ -191,7 +191,7 @@ def create_map_with_gmr_gdp(postes_result, gmr_df, gdp_df, show_all_gmr=False, s
             
             popup_content += "</div>"
             
-            # Marqueur optimisé avec événements contrôlés
+            # Marqueur personnalisé
             folium.Marker(
                 location=[lat, lon],
                 popup=folium.Popup(popup_content, max_width=320, parse_html=False),
@@ -203,7 +203,7 @@ def create_map_with_gmr_gdp(postes_result, gmr_df, gdp_df, show_all_gmr=False, s
                 )
             ).add_to(m)
 
-    # Centrage automatique optimisé sur les postes sélectionnés
+    # Centrage automatique sur les postes sélectionnés
     if coordinates_for_centering:
         if len(coordinates_for_centering) == 1:
             # Un seul poste : centrer dessus avec zoom approprié
@@ -217,7 +217,7 @@ def create_map_with_gmr_gdp(postes_result, gmr_df, gdp_df, show_all_gmr=False, s
 
 @st.cache_data(ttl=CACHE_TTL_SEARCH)
 def find_gmr_for_poste(poste_lat, poste_lon, gmr_df):
-    """Trouve le GMR qui contient le poste donné - version optimisée avec cache"""
+    """Trouve le GMR qui contient le poste donné"""
     try:
         for idx, gmr in gmr_df.iterrows():
             if 'coordinates' in gmr and gmr['coordinates']:
@@ -229,7 +229,7 @@ def find_gmr_for_poste(poste_lat, poste_lon, gmr_df):
 
 @st.cache_data(ttl=CACHE_TTL_SEARCH)
 def find_gdp_for_poste(poste_lat, poste_lon, gdp_df):
-    """Trouve le GDP qui contient le poste donné - version optimisée avec cache"""
+    """Trouve le GDP qui contient le poste donné"""
     try:
         for idx, gdp in gdp_df.iterrows():
             if 'coordinates' in gdp and gdp['coordinates']:

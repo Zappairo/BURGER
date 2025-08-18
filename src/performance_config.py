@@ -1,6 +1,6 @@
-"""
-Configuration des paramètres de performance pour l'application BURGER
-"""
+# 
+# Configuration des paramètres de performance pour l'application BURGER
+# 
 
 # Paramètres de cache
 CACHE_TTL_DATA = 300  # 5 minutes pour les données KML
@@ -44,7 +44,7 @@ TABLE_MAX_WIDTH = None  # Use container width
 
 # Messages d'aide
 HELP_MESSAGES = {
-    'search_placeholder': "Ex: Marmande, Soullans...",
+    'search_placeholder': "Ex: la Martyre, Soullans...",
     'search_min_chars': "💡 Veuillez saisir au moins 2 caractères pour lancer la recherche.",
     'search_no_input': "🔍 Saisissez le nom d'un poste pour commencer la recherche.",
     'too_many_results': "⚠️ {} résultats trouvés. Seuls les {} premiers sont affichés. Précisez votre recherche.",

@@ -1,21 +1,21 @@
-"""
-Authentification utilisateur (MongoDB, bcrypt)
-"""
+# 
+# Authentification utilisateur (MongoDB, bcrypt)
+# 
 import bcrypt
 import pymongo
 import streamlit as st
 from .config import get_mongodb_url
 
 def hash_password(password):
-    """Hashe un mot de passe avec bcrypt"""
+    # Hashe un mot de passe avec bcrypt
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
 
 def verify_password(password, hashed):
-    """Vérifie un mot de passe avec son hash"""
+    # Vérifie un mot de passe avec son hash
     return bcrypt.checkpw(password.encode('utf-8'), hashed)
 
 def authenticate_user(username, password):
-    """Authentifie un utilisateur depuis MongoDB uniquement"""
+    # Authentifie un utilisateur depuis MongoDB uniquement
     users_collection = init_mongodb()
     if users_collection is None:
         return False
@@ -79,7 +79,7 @@ def check_password():
         return True
 
 def init_mongodb():
-    """Initialise la connexion MongoDB"""
+    # Initialise la connexion MongoDB
     try:
         mongodb_url = get_mongodb_url()
         if not mongodb_url or "username:password" in mongodb_url:

@@ -2,11 +2,11 @@
 # BURGER 🍔
 
 ## Fonctionnalités principales
-- Authentification sécurisée via MongoDB (mot de passe hashé, gestion avancée)
-- Recherche optimisée de postes RTE par nom (cache, tolérance orthographique)
+- Authentification via MongoDB (mot de passe hashé, gestion avancée)
+- Recherche de postes RTE par nom (cache, tolérance orthographique)
 - Visualisation cartographique interactive (Folium, KML, polygones GMR/GDP)
 - Affichage détaillé des postes, zones des GMR et GDP avec popups enrichis
-- Gestion intelligente du cache pour accélérer les recherches et l'affichage de la carte
+- Gestion du cache pour accélérer les recherches et l'affichage de la carte
 
 ## 🚀 Installation
 
@@ -60,20 +60,23 @@ BURGER/
 │   ├── parsers.py             # Parsers KML optimisés
 │   ├── performance_config.py  # Paramètres de performance et d'affichage
 │   └── __init__.py
+├── pages/
+│   └── _Planning_Equipes      # Import du planning en csv pour envoyer les points GPS et les infos des postes aux équipes 
 └── utils/                     # Utilitaires divers
+
 ```
 
 ## ⚙️ Options de performance
-- Précision des polygones GMR/GDP ajustable (rapide ou très précis mais très lent)
-- Cache intelligent pour éviter les rechargements inutiles
-- Affichage optimisé pour de nombreux postes ou polygones
+- Précision des tracés polygones GMR/GDP ajustable (peu précis - rapide, très précis - lent)
+- Création d'un cache à chaque recherche pour éviter des rechargements.
 
 ## ℹ️ Conseils d'utilisation
-- Pour une recherche efficace, saisissez au moins 2 caractères du nom du poste.
-- Les résultats sont limités pour garantir la performance.
+- Pour une recherche efficace, saisissez au moins le nom du poste au complet avec son article.
+- La recherche va vous faire apparaître chaque tension du poste, une par ligne, ainsi que son code-NAT sa latitude et sa longitude.
+- Le poste va être situé sur une carte interactive, cela fera apparaître son GMR et son GDP.
 
 ---
 **Développé par Guillaume B.** 🍔  
-*Remerciements spéciaux à Pascal B., Kévin G. et Hervé G.*
+*Remerciements chaleureux à Pascal B., Kévin G. et Hervé G.*
 
-Version 1.1.0
+Version 1.1.1

@@ -2,7 +2,7 @@ import pymongo
 from src.config import get_mongodb_url
 
 def get_user_mail(username):
-    """Récupère l'adresse mail d'un utilisateur MongoDB"""
+    # Récupère l'adresse mail d'un utilisateur MongoDB
     users_collection = None
     try:
         mongodb_url = get_mongodb_url()
@@ -19,7 +19,7 @@ def get_user_mail(username):
     return None
 
 def get_all_users_mails():
-    """Récupère tous les utilisateurs avec leurs mails depuis MongoDB"""
+    # Récupère tous les utilisateurs avec leurs mails depuis MongoDB
     users_collection = None
     try:
         mongodb_url = get_mongodb_url()
@@ -30,7 +30,7 @@ def get_all_users_mails():
         users_collection = db["users"]
         users = users_collection.find({}, {"username": 1, "mail": 1})
         
-        # Mapping entre les noms du planning et les usernames MongoDB
+        # Mapping entre les noms qui apparaissent sur le planning et les usernames MongoDB
         name_mapping = {
             "Guillaume": "gbodin",
             "Corentin": "chervouet", 
