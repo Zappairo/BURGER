@@ -320,7 +320,7 @@ if check_password():
                             if unique_gdp:
                                 st.markdown("#### 🟢 GDP identifiés")
                                 for gdp_poste, gdp_code, gdp_centre in unique_gdp:
-                                    st.success(f"**{gdp_poste}** (Code: {gdp_code}) - Centre: {gdp_centre}")
+                                    st.success(f"**{gdp_poste}** (Code: {gdp_code}) - DI: {gdp_centre}")
                     else:
                         st.warning(HELP_MESSAGES['select_postes'])
 
