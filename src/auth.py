@@ -31,9 +31,13 @@ def authenticate_user(username, password):
 def check_password():
     def authenticate_with_form(username, password):
         # Afficher un indicateur de chargement
+        with st.spinner("🔄 Connexion en cours..."):
             if username and password and authenticate_user(username, password):
                 st.session_state["password_correct"] = True
                 st.session_state["current_user"] = username
+                # Nettoyer les variables d'échec
+                if "login_failed" in st.session_state:
+                    del st.session_state["login_failed"]
                 # Afficher un message de succès temporaire
                 st.success("✅ Connexion réussie ! Redirection...")
                 st.balloons()  # Animation de réussite
@@ -43,6 +47,8 @@ def check_password():
                 st.rerun()
             else:
                 st.session_state["password_correct"] = False
+                st.session_state["login_failed"] = True
+                st.rerun()  # Forcer le rechargement pour vider les champs
 
     if "password_correct" not in st.session_state:
         st.markdown("""
@@ -56,31 +62,17 @@ def check_password():
                 username = st.text_input("👤 Nom d'utilisateur", placeholder="Entrez votre nom d'utilisateur")
                 password = st.text_input("🔒 Mot de passe", type="password", placeholder="Entrez votre mot de passe")
                 
-                # Colonnes pour le bouton et l'indicateur
-                btn_col1, btn_col2, btn_col3 = st.columns([1, 2, 1])
-                with btn_col2:
-                    submitted = st.form_submit_button("🚀 Se connecter", use_container_width=True, type="primary")
-                with btn_col3:
-                    if submitted and username and password:
-                        st.markdown("""
-                            <div style="display: flex; justify-content: center; align-items: center;">
-                            <div style="border: 3px solid #f3f3f3; border-top: 3px solid #3498db; 
-                                border-radius: 50%; width: 20px; height: 20px; 
-                                animation: spin 1s linear infinite;"></div>
-                            </div>
-                            <style>
-                                @keyframes spin {
-                                0% { transform: rotate(0deg); }
-                                100% { transform: rotate(360deg); }
-                            }
-                            </style>
-                        """, unsafe_allow_html=True)
+                submitted = st.form_submit_button("🚀 Se connecter", use_container_width=True, type="primary")
                 
                 if submitted:
                     if not username or not password:
                         st.error("⚠️ Veuillez remplir tous les champs")
                     else:
                         authenticate_with_form(username, password)
+            
+            # Afficher l'erreur si la connexion a échoué (en dehors du formulaire)
+            if st.session_state.get("login_failed", False):
+                st.error("❌ Nom d'utilisateur ou mot de passe incorrect")
             
             if get_mongodb_url() is None:
                 st.warning("⚠️ MongoDB non configuré. Veuillez configurer MONGODB_URL dans les secrets.")
@@ -100,13 +92,7 @@ def check_password():
                 username_retry = st.text_input("👤 Nom d'utilisateur", placeholder="Entrez votre nom d'utilisateur")
                 password_retry = st.text_input("🔒 Mot de passe", type="password", placeholder="Entrez votre mot de passe")
                 
-                # Colonnes pour le bouton et l'indicateur
-                btn_col1, btn_col2 = st.columns([3, 1])
-                with btn_col1:
-                    submitted_retry = st.form_submit_button("🚀 Se connecter", use_container_width=True, type="primary")
-                with btn_col1:
-                    if submitted_retry and username_retry and password_retry:
-                        st.write("⏳")
+                submitted_retry = st.form_submit_button("🚀 Se connecter", use_container_width=True, type="primary")
                 
                 if submitted_retry:
                     if not username_retry or not password_retry:
