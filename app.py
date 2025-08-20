@@ -334,8 +334,16 @@ if check_password():
                         options_hash = hash((show_all_gmr, show_all_gdp, st.session_state.precision_gmr, st.session_state.precision_gdp))
                         map_cache_key = f"stable_map_{postes_hash}_{options_hash}"
                         
-                        with st.spinner("🗺️ Génération de la carte..."):
-                            map_obj = create_map_with_gmr_gdp(filtered_result, gmr_df, gdp_df, show_all_gmr, show_all_gdp)
+                        # Container fixe pour éviter le saut de page
+                        map_container = st.container()
+                        with map_container:
+                            # Vérifier si la carte existe déjà en cache
+                            if f"cached_map_{map_cache_key}" not in st.session_state:
+                                with st.spinner("🗺️ Génération de la carte..."):
+                                    map_obj = create_map_with_gmr_gdp(filtered_result, gmr_df, gdp_df, show_all_gmr, show_all_gdp)
+                                    st.session_state[f"cached_map_{map_cache_key}"] = map_obj
+                            else:
+                                map_obj = st.session_state[f"cached_map_{map_cache_key}"]
                             
                             # Affichage de la carte avec configuration anti rechargement
                             map_data = st_folium(
@@ -357,6 +365,9 @@ if check_password():
                         """)
                     else:
                         st.info("🗺️ Sélectionnez des postes dans le tableau pour afficher la carte.")
+                        # Placeholder pour maintenir la hauteur de la colonne
+                        st.empty()
+                        st.markdown("<div style='height: 500px;'></div>", unsafe_allow_html=True)
                         
             else:
                 st.warning(HELP_MESSAGES['no_results'].format(search_nom))
