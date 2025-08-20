@@ -434,9 +434,9 @@ if check_password():
 
     # Section d'aide pour la configuration SMTP
     with st.expander("🔧 Configuration SMTP - Test"):
-        
-        # Test de configuration SMTP
-        st.subheader("🧪 Test de configuration")
+
+        # Test d'envoi SMTP
+        st.subheader("🧪 Test du protocole SMTP")
         test_email = st.text_input("Email de test :", value="test@example.com")
         if st.button("🚀 Tester l'envoi SMTP"):
             if test_email and "@" in test_email:
@@ -454,4 +454,4 @@ if check_password():
 
     # Texte de fin et remerciements
     st.markdown("<hr style='margin-top:40px;margin-bottom:10px;'>", unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center; color:gray;'>v1.1.0 - APP by Guillaume B. </div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; color:gray;'>v1.1.2 - APP by Guillaume B. </div>", unsafe_allow_html=True)

@@ -371,5 +371,5 @@ if check_password():
 
     # Texte de fin et remerciements
     st.markdown("<hr style='margin-top:40px;margin-bottom:10px;'>", unsafe_allow_html=True)
-    st.markdown("<div style='text-align:center; color:gray;'>v1.1.1 - DB et APP par Guillaume B. 🍔</div>", unsafe_allow_html=True)
+    st.markdown("<div style='text-align:center; color:gray;'>v1.1.2 - DB et APP par Guillaume B. 🍔</div>", unsafe_allow_html=True)
     st.markdown("<div style='text-align:center; color:gray;'>Remerciements chaleureux à Pascal B., Kévin G. et Hervé G.</div>", unsafe_allow_html=True)

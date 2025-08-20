@@ -79,4 +79,4 @@ BURGER/
 **Développé par Guillaume B.** 🍔  
 *Remerciements chaleureux à Pascal B., Kévin G. et Hervé G.*
 
-Version 1.1.1
+Version 1.1.2
