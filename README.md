@@ -72,7 +72,7 @@ BURGER/
 
 ## ℹ️ Conseils d'utilisation
 - Pour une recherche efficace, saisissez au moins le nom du poste au complet avec son article.
-- La recherche va vous faire apparaître chaque tension du poste, une par ligne, ainsi que son code-NAT sa latitude et sa longitude.
+- La recherche va vous faire apparaître chaque tension du poste, une par ligne, ainsi que son code NAT sa latitude et sa longitude.
 - Le poste va être situé sur une carte interactive, cela fera apparaître son GMR et son GDP.
 
 ---
