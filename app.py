@@ -1,4 +1,8 @@
 import streamlit as st
+st.markdown(
+    '<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">',
+    unsafe_allow_html=True
+)
 import pandas as pd
 import folium
 import pymongo
@@ -106,7 +110,10 @@ if check_password():
     # Header avec info utilisateur et déconnexion
     col1, col2, col3 = st.columns([6, 1, 1])
     with col1:
-        st.title("BURGER 🍔 : Base Unifiée de Référencement Géoréférencé des Édifices RTE")
+        st.markdown(
+            '<h1><i class="fa-solid fa-burger" style="color:#0030DE;"></i> BURGER<br><span style="font-size:0.6em;">Base Unifiée de Référencement Géoréférencé des Édifices RTE</span></h1>',
+            unsafe_allow_html=True
+        )
     with col3:
         st.markdown(f"👤 Connecté : **{st.session_state['current_user']}**")
         if st.button("🚪 Se déconnecter"):
