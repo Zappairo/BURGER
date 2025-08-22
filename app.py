@@ -230,8 +230,8 @@ if check_password():
                 # Interface optimisée avec cache de l'état de sélection
                 result_key = f"result_{hash(search_nom)}_{len(result)}"
                 
-                # Création de deux colonnes : tableau et carte
-                col_table, col_map = st.columns([1, 1])
+                # Création de deux colonnes : tableau et carte avec répartition 50/50
+                col_table, col_map = st.columns([1, 1], gap="large")
                 
                 with col_table:
                     st.subheader(f"📋 {len(result)} résultat(s) trouvé(s)")
@@ -239,6 +239,10 @@ if check_password():
                     # Préparation optimisée des données d'affichage
                     result_for_editor = result[DISPLAY_COLUMNS].copy()
                     result_for_editor["Sélectionner"] = False
+                    
+                    # Réorganiser les colonnes pour avoir "Sélectionner" en premier
+                    cols = ["Sélectionner"] + [col for col in result_for_editor.columns if col != "Sélectionner"]
+                    result_for_editor = result_for_editor[cols]
                     
                     # Sélection automatique du premier résultat
                     auto_select_count = min(AUTO_SELECT_COUNT, len(result_for_editor))
