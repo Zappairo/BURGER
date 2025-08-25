@@ -287,8 +287,9 @@ if check_password():
                                 lon_str = f"{row['longitude']:.6f}"
                                 google_url = f"https://www.google.com/maps/search/?api=1&query={lat_str},{lon_str}"
                                 waze_url = f"https://waze.com/ul?ll={lat_str}%2C{lon_str}&navigate=yes"
+                                google_earth_url = f"https://earth.google.com/web/search/{lat_str},{lon_str}"
                                 poste_name = row.get('Nom_du_pos', 'Poste inconnu')
-                                st.markdown(f"📍 **{poste_name}** : [🗺️ Google Maps]({google_url}) | [🚗 Waze]({waze_url})")
+                                st.markdown(f"📍 **{poste_name}** : [🗺️ Google Maps]({google_url}) | [🚗 Waze]({waze_url}) | [🌍 Google Earth]({google_earth_url})")
                         
                         # Informations GMR et GDP avec cache
                         with st.expander("🏢 Informations GMR et GDP", expanded=True):
