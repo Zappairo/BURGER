@@ -10,7 +10,7 @@ CACHE_TTL_MAP = 180  # 3 minutes pour les cartes
 # Paramètres de recherche
 MIN_SEARCH_LENGTH = 2  # Minimum de caractères pour déclencher une recherche
 MAX_SEARCH_RESULTS = 50  # Maximum de résultats affichés
-AUTO_SELECT_COUNT = 1  # Nombre de résultats automatiquement sélectionnés
+AUTO_SELECT_COUNT = 0  # Nombre de résultats automatiquement sélectionnés
 
 # Paramètres de carte
 MAP_DEFAULT_ZOOM = 6
